@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur Pseudo-Assembleur Pédagogique</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        darkbg: '#0b0f19',
+                        darkcard: '#151d30',
+                        darkborder: '#243049'
+                    },
+                    fontFamily: {
+                        mono: ['Fira Code', 'JetBrains Mono', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="shortcut icon" href="icon.png" type="image/png">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #243049;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        
+        /* Glassmorphism panel styling */
+        .glass-panel {
+            background: rgba(21, 29, 48, 0.75);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        /* Active PC Line Highlight */
+        .pc-active-line {
+            background-color: rgba(2, 132, 199, 0.22) !important;
+            border-left: 4px solid #0284c7 !important;
+        }
+
+        /* Flag Pulse animation */
+        @keyframes flagPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+        .flag-updated {
+            animation: flagPulse 0.3s ease-in-out;
+        }
+
+        /* Style du lien GitHub discret */
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.825rem;
+            font-family: inherit;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.2s ease;
+        }
+
+        .github-link:hover {
+            color: var(--text-color);
+            border-color: #6e7681;
+            background: rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-200 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-darkborder bg-slate-950/80 sticky top-0 z-50 backdrop-blur-md px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-brand-600 to-cyan-400 p-2.5 rounded-xl shadow-lg shadow-brand-500/20 text-white font-mono font-bold">
+                <i class="fa-solid fa-microchip text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-white flex items-center gap-2">
+                    Simulateur Pseudo-Assembleur Pédagogique
+                    <span class="text-[11px] font-semibold bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">Dernier Résultat Flag Enabled</span>
+                </h1>
+                <p class="text-xs text-slate-400">Convention : <code class="text-amber-300">ADD A, B, R1</code> (R1 &larr; A + B) | Branchement 1-arg sur dernier résultat : <code class="text-amber-300">BGT L2</code> (si &gt; 0)</p>
+            </div>
+        </div>
+
+        <!-- Sample Programs Dropdown -->
+        <div class="flex items-center gap-2">
+            <label for="sampleSelector" class="text-xs font-medium text-slate-400 hidden sm:inline">Exemples :</label>
+            <select id="sampleSelector" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="flags_branch">1. Branchements Conditionnels (BGT, BEZ 1-arg)</option>
+                <option value="3addr">2. Format 3 Adresses (Dest à la fin)</option>
+                <option value="0addr">3. Format 0 Adresse (Pile / Stack)</option>
+                <option value="loop">4. Boucle Décompte avec BLE / BGT</option>
+                <option value="1addr">5. Format 1 Adresse (Accumulateur AC)</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- Main IDE Layout -->
+    <main class="flex-1 p-3 md:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 max-w-[1920px] w-full mx-auto">
+        
+        <!-- LEFT COLUMN: Code Editor, Control Toolbar & Console (7 cols on lg) -->
+        <section class="lg:col-span-7 flex flex-col gap-3">
+            
+            <!-- Control Toolbar -->
+            <div class="glass-panel p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 shadow-lg">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <button id="btnRun" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow-md shadow-emerald-900/30 active:scale-95">
+                        <i class="fa-solid fa-play"></i> <span>Exécuter Tout</span>
+                    </button>
+                    <button id="btnStep" class="bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow-md shadow-brand-900/30 active:scale-95">
+                        <i class="fa-solid fa-forward-step"></i> <span>Pas à Pas</span>
+                    </button>
+                    <button id="btnBack" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs px-3 py-2 rounded-lg transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 border border-slate-700" disabled>
+                        <i class="fa-solid fa-backward-step"></i> <span>Retour</span>
+                    </button>
+                    <button id="btnReset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs px-3 py-2 rounded-lg transition flex items-center gap-1.5 border border-slate-700 active:scale-95">
+                        <i class="fa-solid fa-rotate-right"></i> <span>Reset</span>
+                    </button>
+                </div>
+
+                <!-- Execution Speed Slider -->
+                <div class="flex items-center gap-2 pl-2 border-l border-slate-700/60">
+                    <i class="fa-solid fa-gauge-high text-xs text-slate-400"></i>
+                    <span class="text-xs text-slate-400 font-medium">Vitesse :</span>
+                    <input type="range" id="speedSlider" min="50" max="1000" value="300" step="50" class="w-20 accent-brand-500 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Code Editor Box with PC Highlight -->
+            <div class="glass-panel rounded-xl flex-1 flex flex-col min-h-[380px] overflow-hidden shadow-xl border border-darkborder">
+                <div class="bg-slate-900/90 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-300 flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-code text-brand-400"></i> ÉDITEUR DE CODE
+                    </span>
+                    <span id="lineCounter" class="text-[11px] text-slate-400 font-mono">0 lignes</span>
+                </div>
+
+                <!-- Editor Workspace -->
+                <div class="flex-1 flex relative font-mono text-xs sm:text-sm overflow-hidden bg-slate-950/70">
+                    <!-- Line Numbers & Active PC Marker -->
+                    <div id="lineNumbers" class="py-3 px-2 bg-slate-900/90 text-slate-600 border-r border-slate-800 select-none text-right min-w-[42px] leading-6 font-mono">
+                        1
+                    </div>
+                    
+                    <!-- Code Textarea -->
+                    <div class="relative flex-1 h-full overflow-auto">
+                        <textarea id="codeEditor" spellcheck="false" class="w-full h-full bg-transparent text-slate-100 p-3 leading-6 resize-none focus:outline-none font-mono whitespace-pre overflow-auto" placeholder="Saisissez votre code pseudo-assembleur..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Console Log Window -->
+            <div class="glass-panel rounded-xl h-44 flex flex-col overflow-hidden shadow-md border border-darkborder">
+                <div class="bg-slate-900/90 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-300 flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-terminal text-emerald-400"></i> TRACE & CONSOLE D'EXÉCUTION
+                    </span>
+                    <button id="btnClearConsole" class="text-[10px] text-slate-400 hover:text-slate-200 underline">Effacer</button>
+                </div>
+                <div id="consoleLog" class="flex-1 p-2.5 font-mono text-xs overflow-y-auto space-y-1 bg-slate-950/90 text-slate-300">
+                    <div class="text-slate-500 italic">[Info] Prêt. Cliquez sur 'Pas à Pas' ou 'Exécuter Tout'.</div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: Inspectors & Internal Architecture (5 cols on lg) -->
+        <section class="lg:col-span-5 flex flex-col gap-3">
+
+            <!-- CRITICAL FEATURE: Flags / Last Computed Result Badge -->
+            <div id="flagCard" class="glass-panel p-3.5 rounded-xl shadow-lg border border-darkborder transition">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-flag text-amber-400"></i> Registre d'État / Dernier Résultat
+                    </h2>
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">Évalué par BGT, BEZ, etc.</span>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 mt-2">
+                    <!-- Value Badge -->
+                    <div class="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg text-center">
+                        <div class="text-[10px] text-slate-400 font-mono">Dernier Calcul</div>
+                        <div id="flagLastResult" class="text-lg font-bold font-mono text-amber-300">0</div>
+                    </div>
+                    <!-- Zero Flag Badge -->
+                    <div class="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg text-center">
+                        <div class="text-[10px] text-slate-400 font-mono">FLAG ZERO (=0)</div>
+                        <div id="flagZero" class="text-xs font-bold font-mono mt-1 text-slate-500">FAUX</div>
+                    </div>
+                    <!-- Sign Flag Badge -->
+                    <div class="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg text-center">
+                        <div class="text-[10px] text-slate-400 font-mono">SIGNE (POS / NEG)</div>
+                        <div id="flagSign" class="text-xs font-bold font-mono mt-1 text-slate-500">ZERO</div>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2 italic">
+                    <i class="fa-solid fa-circle-info text-brand-400"></i> Toute opération (ADD, SUB, LOAD, POP) met à jour ce résultat. Les sauts conditionnels (BGT, BLE...) lisent ce résultat.
+                </p>
+            </div>
+
+            <!-- Registers Section -->
+            <div class="glass-panel p-3.5 rounded-xl shadow-lg border border-darkborder">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-microchip text-brand-400"></i> Registres Processeur
+                    </h2>
+                    <span class="text-[10px] text-slate-400 font-mono">PC: Counter | AC: Accumulateur</span>
+                </div>
+                <div id="registersGrid" class="grid grid-cols-4 gap-2">
+                    <!-- Dynamically rendered registers -->
+                </div>
+            </div>
+
+            <!-- Memory / Variables Table -->
+            <div class="glass-panel p-3.5 rounded-xl shadow-lg border border-darkborder flex-1 flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-database text-emerald-400"></i> Mémoire RAM / Variables
+                    </h2>
+                    <button id="btnAddVar" class="text-xs bg-slate-800 hover:bg-slate-700 text-brand-400 border border-brand-500/30 px-2.5 py-1 rounded flex items-center gap-1 transition">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Variable
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto max-h-48 rounded-lg border border-slate-800 bg-slate-950/60">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-900/90 text-slate-400 text-[11px] uppercase font-mono sticky top-0">
+                            <tr>
+                                <th class="p-2">Adresse / Nom</th>
+                                <th class="p-2 text-right">Valeur</th>
+                                <th class="p-2 text-center w-10">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memoryTableBody" class="font-mono divide-y divide-slate-800/60 text-slate-300">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Stack Visualizer (0-Address Format) -->
+            <div class="glass-panel p-3.5 rounded-xl shadow-lg border border-darkborder">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-layer-group text-cyan-400"></i> Pile d'Exécution (Stack)
+                    </h2>
+                    <span class="text-[10px] text-slate-400 font-mono">PUSH / POP (Format 0 adresse)</span>
+                </div>
+                
+                <div id="stackVisualizer" class="bg-slate-950/80 border border-slate-800 rounded-lg p-2 min-h-[100px] max-h-[130px] overflow-y-auto flex flex-col-reverse justify-start items-center gap-1.5">
+                    <div id="emptyStackMsg" class="text-slate-600 text-xs italic py-3">Pile vide</div>
+                </div>
+            </div>
+
+        </section>
+
+        <a href="https://github.com/Mashiro156" target="_blank" rel="noopener noreferrer" class="github-link">
+            <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            <span>Mashiro156</span>
+        </a>
+
+    </main>
+
+    <!-- JavaScript Application Engine -->
+    <script>
+        // Sample Programs Collection based on your exact course rules
+        const SAMPLE_PROGRAMS = {
+            'flags_branch': `; --- Exemple 1 : Branchements Conditionnels (1 Argument) ---
+; Les sauts (BGT, BEZ, etc.) prennent SEULEMENT la cible (étiquette)
+; et évaluent le DERNIER RÉSULTAT calculé.
+
+LOAD A          ; AC <- A (15). Dernier résultat = 15
+SUB B           ; AC <- AC - B (15 - 10 = 5). Dernier résultat = 5
+
+BGT EST_POSITIF ; Comme dernier_résultat (5) > 0, saute à EST_POSITIF !
+
+; Cette partie sera ignorée en cas de saut :
+LOAD 0
+STORE RESULTAT
+BR FIN
+
+EST_POSITIF:
+LOAD 1
+STORE RESULTAT  ; RESULTAT <- 1 (Valide que A > B)
+
+FIN:
+; Programme terminé
+`,
+            '3addr': `; --- Exemple 2 : Format 3 Adresses ---
+; Convention : Destination à la FIN (Src1, Src2, Dest)
+
+ADD A, B, R1    ; R1 <- A + B (10 + 5 = 15). Dernier résultat = 15
+SUB R1, 3, R2   ; R2 <- R1 - 3 (15 - 3 = 12). Dernier résultat = 12
+MPY R1, R2, X   ; X  <- R1 * R2 (15 * 12 = 180). Dernier résultat = 180
+DIV X, 2, RES   ; RES <- X / 2 (180 / 2 = 90). Dernier résultat = 90
+`,
+            '0addr': `; --- Exemple 3 : Format 0 Adresse (Pile / Stack) ---
+; Calcul de : RES = (A + B) * C
+
+PUSH A          ; Empile A (10)
+PUSH B          ; Empile B (5)
+ADD             ; Dépile 10 et 5, empile 15. Dernier résultat = 15
+PUSH C          ; Empile C (3)
+MPY             ; Dépile 15 et 3, empile 45. Dernier résultat = 45
+POP RES         ; Dépile dans RES.
+`,
+            'loop': `; --- Exemple 4 : Boucle de Décompte (BLE / BGT) ---
+; Additionne les nombres de N à 0
+
+LOAD N
+STORE COMPTEUR  ; COMPTEUR <- N (4)
+LOAD 0
+STORE SOMME     ; SOMME <- 0
+
+BOUCLE:
+LOAD COMPTEUR   ; Dernier résultat = COMPTEUR
+BEZ FIN         ; Si COMPTEUR == 0, saut à FIN
+
+LOAD SOMME
+ADD COMPTEUR
+STORE SOMME     ; SOMME <- SOMME + COMPTEUR
+
+LOAD COMPTEUR
+SUB 1           ; COMPTEUR - 1
+STORE COMPTEUR  ; Mise à jour du compteur. Dernier résultat = COMPTEUR - 1
+
+BR BOUCLE       ; Repartir au début de la boucle
+
+FIN:
+LOAD SOMME
+STORE RES       ; RES contient la somme totale (10)
+`,
+            '1addr': `; --- Exemple 5 : Format 1 Adresse (Accumulateur) ---
+; Toutes les opérations passent par l'Accumulateur AC
+
+LOAD A          ; AC <- 10. Dernier résultat = 10
+SUB B           ; AC <- AC - 5 = 5. Dernier résultat = 5
+MPY C           ; AC <- AC * 3 = 15. Dernier résultat = 15
+STORE RES       ; RES <- 15
+`
+        };
+
+        // Virtual Machine Engine
+        class VirtualMachine {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.registers = {
+                    'PC': 0,
+                    'AC': 0,
+                    'R1': 0,
+                    'R2': 0,
+                    'R3': 0,
+                    'R4': 0
+                };
+                this.memory = {
+                    'A': 15,
+                    'B': 10,
+                    'C': 3,
+                    'N': 4,
+                    'X': 0,
+                    'RES': 0,
+                    'RESULTAT': 0,
+                    'COMPTEUR': 0,
+                    'SOMME': 0
+                };
+                this.stack = [];
+                this.labels = {};
+                this.parsedInstructions = [];
+                this.rawLines = [];
+                this.history = [];
+                this.isHalted = false;
+
+                // CRITICAL STATUS FLAGS
+                this.lastResult = 0;
+            }
+
+            // Update status flag whenever a calculation occurs
+            updateLastResult(val) {
+                this.lastResult = val;
+            }
+
+            saveSnapshot() {
+                return JSON.parse(JSON.stringify({
+                    registers: this.registers,
+                    memory: this.memory,
+                    stack: this.stack,
+                    lastResult: this.lastResult,
+                    isHalted: this.isHalted
+                }));
+            }
+
+            restoreSnapshot(snapshot) {
+                this.registers = JSON.parse(JSON.stringify(snapshot.registers));
+                this.memory = JSON.parse(JSON.stringify(snapshot.memory));
+                this.stack = JSON.parse(JSON.stringify(snapshot.stack));
+                this.lastResult = snapshot.lastResult;
+                this.isHalted = snapshot.isHalted;
+            }
+
+            parseCode(codeText) {
+                this.reset();
+                this.rawLines = codeText.split('\n');
+                this.parsedInstructions = [];
+                this.labels = {};
+
+                let execIndex = 0;
+
+                for (let lineIdx = 0; lineIdx < this.rawLines.length; lineIdx++) {
+                    let rawLine = this.rawLines[lineIdx];
+                    let codeOnly = rawLine.split(';')[0].trim();
+
+                    if (!codeOnly) continue;
+
+                    // Label definition (e.g. "BOUCLE:")
+                    if (codeOnly.includes(':')) {
+                        const parts = codeOnly.split(':');
+                        const labelName = parts[0].trim().toUpperCase();
+                        this.labels[labelName] = execIndex;
+
+                        const remainingCode = parts[1].trim();
+                        if (remainingCode) {
+                            this.parsedInstructions.push(this.tokenizeLine(remainingCode, lineIdx));
+                            execIndex++;
+                        }
+                    } else {
+                        this.parsedInstructions.push(this.tokenizeLine(codeOnly, lineIdx));
+                        execIndex++;
+                    }
+                }
+            }
+
+            tokenizeLine(lineStr, originalLineIndex) {
+                const clean = lineStr.replace(/,/g, ' ');
+                const tokens = clean.trim().split(/\s+/).filter(t => t.length > 0);
+                return {
+                    cmd: tokens[0].toUpperCase(),
+                    args: tokens.slice(1),
+                    originalLineIndex: originalLineIndex,
+                    rawText: lineStr
+                };
+            }
+
+            getValue(operand) {
+                if (!operand) return 0;
+                operand = operand.trim();
+                
+                if (!isNaN(operand)) {
+                    return parseInt(operand, 10);
+                }
+
+                const upper = operand.toUpperCase();
+                if (this.registers.hasOwnProperty(upper)) {
+                    return this.registers[upper];
+                }
+                if (this.memory.hasOwnProperty(upper)) {
+                    return this.memory[upper];
+                }
+                
+                // Initialize unknown variable
+                this.memory[upper] = 0;
+                return 0;
+            }
+
+            setValue(target, value) {
+                if (!target) return;
+                target = target.trim();
+                const upper = target.toUpperCase();
+
+                if (this.registers.hasOwnProperty(upper)) {
+                    this.registers[upper] = value;
+                } else {
+                    this.memory[upper] = value;
+                }
+                // Automatically updates status flag
+                this.updateLastResult(value);
+            }
+
+            step() {
+                if (this.isHalted || this.registers.PC >= this.parsedInstructions.length) {
+                    this.isHalted = true;
+                    return { success: false, msg: "Fin du programme." };
+                }
+
+                // Save snapshot for undo
+                this.history.push({
+                    pc: this.registers.PC,
+                    snapshot: this.saveSnapshot()
+                });
+
+                const currentInst = this.parsedInstructions[this.registers.PC];
+                const cmd = currentInst.cmd;
+                const args = currentInst.args;
+                let nextPC = this.registers.PC + 1;
+                let logMsg = `[PC=${this.registers.PC}] ${currentInst.rawText}`;
+
+                try {
+                    switch (cmd) {
+                        // --- FORMAT 0 ADRESSE (STACK) ---
+                        case 'PUSH':
+                            const pushVal = this.getValue(args[0]);
+                            this.stack.push(pushVal);
+                            this.updateLastResult(pushVal);
+                            break;
+
+                        case 'POP':
+                            if (this.stack.length === 0) throw new Error("Erreur: Pile vide (Stack Underflow) !");
+                            const popVal = this.stack.pop();
+                            this.setValue(args[0], popVal);
+                            break;
+
+                        // --- ARITHMÉTIQUE MULTI-FORMATS ---
+                        case 'ADD':
+                            if (args.length === 0) { // 0 addr
+                                if (this.stack.length < 2) throw new Error("Erreur Stack: ADD nécessite 2 éléments.");
+                                const b = this.stack.pop(), a = this.stack.pop();
+                                const res = a + b;
+                                this.stack.push(res);
+                                this.updateLastResult(res);
+                            } else if (args.length === 1) { // 1 addr (AC)
+                                this.registers.AC += this.getValue(args[0]);
+                                this.updateLastResult(this.registers.AC);
+                            } else if (args.length === 2) { // 2 addr
+                                const res = this.getValue(args[0]) + this.getValue(args[1]);
+                                this.setValue(args[0], res);
+                            } else if (args.length === 3) { // 3 addr (Dest en dernier: Src1, Src2, Dest)
+                                const res = this.getValue(args[0]) + this.getValue(args[1]);
+                                this.setValue(args[2], res);
+                            }
+                            break;
+
+                        case 'SUB':
+                            if (args.length === 0) {
+                                if (this.stack.length < 2) throw new Error("Erreur Stack: SUB nécessite 2 éléments.");
+                                const b = this.stack.pop(), a = this.stack.pop();
+                                const res = a - b;
+                                this.stack.push(res);
+                                this.updateLastResult(res);
+                            } else if (args.length === 1) {
+                                this.registers.AC -= this.getValue(args[0]);
+                                this.updateLastResult(this.registers.AC);
+                            } else if (args.length === 2) {
+                                const res = this.getValue(args[0]) - this.getValue(args[1]);
+                                this.setValue(args[0], res);
+                            } else if (args.length === 3) {
+                                const res = this.getValue(args[0]) - this.getValue(args[1]);
+                                this.setValue(args[2], res);
+                            }
+                            break;
+
+                        case 'MPY':
+                        case 'MUL':
+                            if (args.length === 0) {
+                                if (this.stack.length < 2) throw new Error("Erreur Stack: MPY nécessite 2 éléments.");
+                                const b = this.stack.pop(), a = this.stack.pop();
+                                const res = a * b;
+                                this.stack.push(res);
+                                this.updateLastResult(res);
+                            } else if (args.length === 1) {
+                                this.registers.AC *= this.getValue(args[0]);
+                                this.updateLastResult(this.registers.AC);
+                            } else if (args.length === 2) {
+                                const res = this.getValue(args[0]) * this.getValue(args[1]);
+                                this.setValue(args[0], res);
+                            } else if (args.length === 3) {
+                                const res = this.getValue(args[0]) * this.getValue(args[1]);
+                                this.setValue(args[2], res);
+                            }
+                            break;
+
+                        case 'DIV':
+                            if (args.length === 0) {
+                                if (this.stack.length < 2) throw new Error("Erreur Stack: DIV nécessite 2 éléments.");
+                                const b = this.stack.pop(), a = this.stack.pop();
+                                if (b === 0) throw new Error("Division par zéro !");
+                                const res = Math.floor(a / b);
+                                this.stack.push(res);
+                                this.updateLastResult(res);
+                            } else if (args.length === 1) {
+                                const divisor = this.getValue(args[0]);
+                                if (divisor === 0) throw new Error("Division par zéro !");
+                                this.registers.AC = Math.floor(this.registers.AC / divisor);
+                                this.updateLastResult(this.registers.AC);
+                            } else if (args.length === 2) {
+                                const divisor = this.getValue(args[1]);
+                                if (divisor === 0) throw new Error("Division par zéro !");
+                                const res = Math.floor(this.getValue(args[0]) / divisor);
+                                this.setValue(args[0], res);
+                            } else if (args.length === 3) {
+                                const divisor = this.getValue(args[1]);
+                                if (divisor === 0) throw new Error("Division par zéro !");
+                                const res = Math.floor(this.getValue(args[0]) / divisor);
+                                this.setValue(args[2], res);
+                            }
+                            break;
+
+                        // --- FORMAT 1 ADRESSE (ACCUMULATEUR) ---
+                        case 'LOAD':
+                            const loadedVal = this.getValue(args[0]);
+                            this.registers.AC = loadedVal;
+                            this.updateLastResult(loadedVal);
+                            break;
+
+                        case 'STORE':
+                            this.setValue(args[0], this.registers.AC);
+                            break;
+
+                        // --- SAUTS CONDITIONNELS (1 SEUL ARGUMENT : L'ÉTIQUETTE) ---
+                        case 'BR': // Saut inconditionnel
+                            nextPC = this.resolveLabel(args[0]);
+                            logMsg += ` -> Saut direct vers ${args[0]}`;
+                            break;
+
+                        case 'BEZ': // Saut si dernier_résultat == 0
+                            if (this.lastResult === 0) {
+                                nextPC = this.resolveLabel(args[0]);
+                                logMsg += ` -> Condition VRAIE (${this.lastResult} == 0), saut vers ${args[0]}`;
+                            } else {
+                                logMsg += ` -> Condition FAUSSE (${this.lastResult} != 0)`;
+                            }
+                            break;
+
+                        case 'BGT': // Saut si dernier_résultat > 0
+                            if (this.lastResult > 0) {
+                                nextPC = this.resolveLabel(args[0]);
+                                logMsg += ` -> Condition VRAIE (${this.lastResult} > 0), saut vers ${args[0]}`;
+                            } else {
+                                logMsg += ` -> Condition FAUSSE (${this.lastResult} <= 0)`;
+                            }
+                            break;
+
+                        case 'BGE': // Saut si dernier_résultat >= 0
+                            if (this.lastResult >= 0) {
+                                nextPC = this.resolveLabel(args[0]);
+                                logMsg += ` -> Condition VRAIE (${this.lastResult} >= 0), saut vers ${args[0]}`;
+                            } else {
+                                logMsg += ` -> Condition FAUSSE (${this.lastResult} < 0)`;
+                            }
+                            break;
+
+                        case 'BLT': // Saut si dernier_résultat < 0
+                            if (this.lastResult < 0) {
+                                nextPC = this.resolveLabel(args[0]);
+                                logMsg += ` -> Condition VRAIE (${this.lastResult} < 0), saut vers ${args[0]}`;
+                            } else {
+                                logMsg += ` -> Condition FAUSSE (${this.lastResult} >= 0)`;
+                            }
+                            break;
+
+                        case 'BLE': // Saut si dernier_résultat <= 0
+                            if (this.lastResult <= 0) {
+                                nextPC = this.resolveLabel(args[0]);
+                                logMsg += ` -> Condition VRAIE (${this.lastResult} <= 0), saut vers ${args[0]}`;
+                            } else {
+                                logMsg += ` -> Condition FAUSSE (${this.lastResult} > 0)`;
+                            }
+                            break;
+
+                        default:
+                            throw new Error(`Instruction non reconnue : '${cmd}'`);
+                    }
+
+                    this.registers.PC = nextPC;
+                    if (this.registers.PC >= this.parsedInstructions.length) {
+                        this.isHalted = true;
+                    }
+
+                    return { success: true, msg: logMsg, lineIndex: currentInst.originalLineIndex };
+
+                } catch (err) {
+                    this.isHalted = true;
+                    return { success: false, msg: err.message, lineIndex: currentInst.originalLineIndex };
+                }
+            }
+
+            stepBack() {
+                if (this.history.length === 0) return false;
+                const lastState = this.history.pop();
+                this.registers.PC = lastState.pc;
+                this.restoreSnapshot(lastState.snapshot);
+                return true;
+            }
+
+            resolveLabel(labelName) {
+                if (!labelName) throw new Error("Étiquette manquante.");
+                const upper = labelName.toUpperCase();
+                if (this.labels.hasOwnProperty(upper)) {
+                    return this.labels[upper];
+                }
+                throw new Error(`Étiquette (Label) non trouvée : '${labelName}'`);
+            }
+        }
+
+        // DOM Controller
+        document.addEventListener('DOMContentLoaded', () => {
+            const vm = new VirtualMachine();
+            let autoRunTimer = null;
+
+            // Elements
+            const codeEditor = document.getElementById('codeEditor');
+            const lineNumbers = document.getElementById('lineNumbers');
+            const lineCounter = document.getElementById('lineCounter');
+            const btnRun = document.getElementById('btnRun');
+            const btnStep = document.getElementById('btnStep');
+            const btnBack = document.getElementById('btnBack');
+            const btnReset = document.getElementById('btnReset');
+            const speedSlider = document.getElementById('speedSlider');
+            const sampleSelector = document.getElementById('sampleSelector');
+            const consoleLog = document.getElementById('consoleLog');
+            const btnClearConsole = document.getElementById('btnClearConsole');
+            const registersGrid = document.getElementById('registersGrid');
+            const memoryTableBody = document.getElementById('memoryTableBody');
+            const stackVisualizer = document.getElementById('stackVisualizer');
+            const emptyStackMsg = document.getElementById('emptyStackMsg');
+            const btnAddVar = document.getElementById('btnAddVar');
+
+            // Flag elements
+            const flagLastResult = document.getElementById('flagLastResult');
+            const flagZero = document.getElementById('flagZero');
+            const flagSign = document.getElementById('flagSign');
+
+            function init() {
+                loadSample('flags_branch');
+            }
+
+            function loadSample(key) {
+                stopAutoRun();
+                codeEditor.value = SAMPLE_PROGRAMS[key] || '';
+                vm.parseCode(codeEditor.value);
+                updateLineNumbers();
+                renderAllUI();
+                logToConsole(`Exemple '${key}' chargé.`, 'info');
+            }
+
+            function updateLineNumbers() {
+                const lines = codeEditor.value.split('\n');
+                const count = lines.length;
+                lineCounter.textContent = `${count} ligne${count > 1 ? 's' : ''}`;
+
+                let currentPCLine = -1;
+                if (vm.parsedInstructions[vm.registers.PC]) {
+                    currentPCLine = vm.parsedInstructions[vm.registers.PC].originalLineIndex;
+                }
+
+                let numsHTML = '';
+                for (let i = 0; i < count; i++) {
+                    const isActive = (i === currentPCLine) && !vm.isHalted;
+                    numsHTML += `<div class="h-6 flex items-center justify-end px-1.5 font-mono ${isActive ? 'pc-active-line text-brand-300 font-bold' : ''}">${i + 1}</div>`;
+                }
+                lineNumbers.innerHTML = numsHTML;
+            }
+
+            function logToConsole(msg, type = 'default') {
+                const item = document.createElement('div');
+                item.className = 'text-xs flex items-start gap-1.5 py-0.5';
+
+                if (type === 'error') {
+                    item.innerHTML = `<span class="text-rose-400 font-bold">[ERREUR]</span> <span class="text-rose-200">${msg}</span>`;
+                } else if (type === 'step') {
+                    item.innerHTML = `<span class="text-brand-400 font-bold">&rarr;</span> <span>${msg}</span>`;
+                } else if (type === 'info') {
+                    item.innerHTML = `<span class="text-slate-500">[INFO]</span> <span class="text-slate-400">${msg}</span>`;
+                } else {
+                    item.innerHTML = `<span class="text-emerald-400">&check;</span> <span>${msg}</span>`;
+                }
+
+                consoleLog.appendChild(item);
+                consoleLog.scrollTop = consoleLog.scrollHeight;
+            }
+
+            function renderFlags() {
+                const res = vm.lastResult;
+                flagLastResult.textContent = res;
+
+                if (res === 0) {
+                    flagZero.textContent = "VRAI (=0)";
+                    flagZero.className = "text-xs font-bold font-mono mt-1 text-emerald-400";
+                    flagSign.textContent = "ZERO";
+                    flagSign.className = "text-xs font-bold font-mono mt-1 text-slate-400";
+                } else if (res > 0) {
+                    flagZero.textContent = "FAUX (!=0)";
+                    flagZero.className = "text-xs font-bold font-mono mt-1 text-slate-500";
+                    flagSign.textContent = "POSITIF (+)";
+                    flagSign.className = "text-xs font-bold font-mono mt-1 text-cyan-400";
+                } else {
+                    flagZero.textContent = "FAUX (!=0)";
+                    flagZero.className = "text-xs font-bold font-mono mt-1 text-slate-500";
+                    flagSign.textContent = "NÉGATIF (-)";
+                    flagSign.className = "text-xs font-bold font-mono mt-1 text-rose-400";
+                }
+            }
+
+            function renderRegisters() {
+                registersGrid.innerHTML = '';
+                for (const [reg, val] of Object.entries(vm.registers)) {
+                    const card = document.createElement('div');
+                    const isPC = reg === 'PC';
+                    const isAC = reg === 'AC';
+                    
+                    card.className = `p-2 rounded-lg border text-center transition ${
+                        isPC ? 'bg-brand-950/40 border-brand-500/40 text-brand-300' :
+                        isAC ? 'bg-amber-950/30 border-amber-500/30 text-amber-300' :
+                        'bg-slate-900/80 border-slate-800 text-slate-300'
+                    }`;
+                    
+                    card.innerHTML = `
+                        <div class="text-[10px] font-mono text-slate-400">${reg}</div>
+                        <div class="text-sm font-bold font-mono mt-0.5">${val}</div>
+                    `;
+                    registersGrid.appendChild(card);
+                }
+            }
+
+            function renderMemoryTable() {
+                memoryTableBody.innerHTML = '';
+                const entries = Object.entries(vm.memory);
+
+                if (entries.length === 0) {
+                    memoryTableBody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-slate-500 italic">Aucune variable</td></tr>`;
+                    return;
+                }
+
+                entries.forEach(([varName, val]) => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-800/40 transition';
+                    row.innerHTML = `
+                        <td class="p-2 text-emerald-300 font-bold">${varName}</td>
+                        <td class="p-2 text-right font-mono">${val}</td>
+                        <td class="p-2 text-center">
+                            <button data-var="${varName}" class="btn-edit-var text-slate-500 hover:text-brand-400 text-xs">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                        </td>
+                    `;
+                    memoryTableBody.appendChild(row);
+                });
+
+                document.querySelectorAll('.btn-edit-var').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const name = e.currentTarget.getAttribute('data-var');
+                        const newVal = prompt(`Nouvelle valeur pour ${name} :`, vm.memory[name]);
+                        if (newVal !== null && !isNaN(newVal)) {
+                            vm.memory[name] = parseInt(newVal, 10);
+                            renderAllUI();
+                        }
+                    });
+                });
+            }
+
+            function renderStack() {
+                const items = stackVisualizer.querySelectorAll('.stack-item');
+                items.forEach(el => el.remove());
+
+                if (vm.stack.length === 0) {
+                    emptyStackMsg.style.display = 'block';
+                    return;
+                }
+
+                emptyStackMsg.style.display = 'none';
+
+                vm.stack.forEach((val, idx) => {
+                    const isTop = (idx === vm.stack.length - 1);
+                    const item = document.createElement('div');
+                    item.className = `stack-item w-full py-1 px-3 rounded text-center text-xs font-mono font-bold flex items-center justify-between border ${
+                        isTop ? 'bg-cyan-600/30 border-cyan-400/60 text-cyan-200' : 'bg-slate-900 border-slate-800 text-slate-300'
+                    }`;
+                    item.innerHTML = `
+                        <span class="text-[10px] text-slate-400 font-normal">[${idx}]</span>
+                        <span>${val}</span>
+                        ${isTop ? '<span class="text-[9px] bg-cyan-500 text-slate-950 px-1 rounded font-bold">SOMMET</span>' : '<span></span>'}
+                    `;
+                    stackVisualizer.appendChild(item);
+                });
+            }
+
+            function renderAllUI() {
+                updateLineNumbers();
+                renderFlags();
+                renderRegisters();
+                renderMemoryTable();
+                renderStack();
+                btnBack.disabled = vm.history.length === 0;
+            }
+
+            function handleStep() {
+                if (vm.parsedInstructions.length === 0) {
+                    vm.parseCode(codeEditor.value);
+                }
+
+                const res = vm.step();
+                if (res.success) {
+                    logToConsole(res.msg, 'step');
+                } else {
+                    logToConsole(res.msg, res.msg.includes('Fin') ? 'info' : 'error');
+                    stopAutoRun();
+                }
+                renderAllUI();
+            }
+
+            function handleStepBack() {
+                if (vm.stepBack()) {
+                    logToConsole('Retour d\'un pas en arrière.', 'info');
+                    renderAllUI();
+                }
+            }
+
+            function handleReset() {
+                stopAutoRun();
+                vm.parseCode(codeEditor.value);
+                logToConsole('Réinitialisation terminée.', 'info');
+                renderAllUI();
+            }
+
+            function stopAutoRun() {
+                if (autoRunTimer) {
+                    clearInterval(autoRunTimer);
+                    autoRunTimer = null;
+                    btnRun.innerHTML = `<i class="fa-solid fa-play"></i> <span>Exécuter Tout</span>`;
+                    btnRun.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+                    btnRun.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+                }
+            }
+
+            function handleRunAll() {
+                if (autoRunTimer) {
+                    stopAutoRun();
+                    logToConsole('Exécution en pause.', 'info');
+                    return;
+                }
+
+                if (vm.isHalted || vm.parsedInstructions.length === 0) {
+                    vm.parseCode(codeEditor.value);
+                }
+
+                btnRun.innerHTML = `<i class="fa-solid fa-pause"></i> <span>Pause</span>`;
+                btnRun.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+                btnRun.classList.add('bg-amber-600', 'hover:bg-amber-500');
+
+                const speed = 1050 - parseInt(speedSlider.value, 10);
+
+                autoRunTimer = setInterval(() => {
+                    if (vm.isHalted) {
+                        stopAutoRun();
+                        return;
+                    }
+                    handleStep();
+                }, speed);
+            }
+
+            // Events
+            codeEditor.addEventListener('input', () => {
+                updateLineNumbers();
+                vm.parseCode(codeEditor.value);
+            });
+
+            sampleSelector.addEventListener('change', (e) => {
+                loadSample(e.target.value);
+            });
+
+            btnStep.addEventListener('click', () => {
+                stopAutoRun();
+                handleStep();
+            });
+
+            btnBack.addEventListener('click', () => {
+                stopAutoRun();
+                handleStepBack();
+            });
+
+            btnReset.addEventListener('click', handleReset);
+            btnRun.addEventListener('click', handleRunAll);
+
+            btnClearConsole.addEventListener('click', () => {
+                consoleLog.innerHTML = '<div class="text-slate-500 italic">[Console effacée]</div>';
+            });
+
+            btnAddVar.addEventListener('click', () => {
+                const name = prompt("Nom de la variable (ex: MA_VAR):");
+                if (name) {
+                    const cleanName = name.trim().toUpperCase();
+                    const val = prompt(`Valeur pour ${cleanName}:`, "0");
+                    if (val !== null && !isNaN(val)) {
+                        vm.memory[cleanName] = parseInt(val, 10);
+                        renderAllUI();
+                    }
+                }
+            });
+
+            init();
+        });
+    </script>
+</body>
+</html>
