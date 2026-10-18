@@ -1,6 +1,6 @@
 # V8086
 
-Compilateur et simulateur du pseudo-assembleur du cours d'architecture des ordinateurs (ENSP, chapitre I, Dr A. M. Chana Lemale).
+Compilateur et simulateur du pseudo-assembleur du cours d'architecture des ordinateurs (ENSPY, chapitre I).
 
 On écrit un programme dans l'éditeur, V8086 le vérifie, puis l'exécute en montrant l'état de la machine à chaque instruction : mémoire, accumulateur, pile et registre drapeau.
 
