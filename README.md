@@ -37,11 +37,11 @@ Une convention à retenir : **les majuscules désignent les instructions et les 
 
 | Fichier | Contenu |
 |---|---|
-| [docs/syntaxe.md](docs/syntaxe.md) | comment écrire un programme : lignes, noms, commentaires, étiquettes, variables, directives |
-| [docs/instructions.md](docs/instructions.md) | chaque instruction, le registre drapeau, les modes |
-| [docs/erreurs.md](docs/erreurs.md) | les 27 erreurs, avec un exemple et la correction |
-| [docs/exemples.md](docs/exemples.md) | programmes complets en 0, 1, 2 et 3 adresses |
-| [docs/architecture.md](docs/architecture.md) | les étapes du compilateur, pour contribuer |
+| [docs/syntaxe.md](Docs/syntaxe.md) | comment écrire un programme : lignes, noms, commentaires, étiquettes, variables, directives |
+| [docs/instructions.md](Docs/instructions.md) | chaque instruction, le registre drapeau, les modes |
+| [docs/erreurs.md](Docs/erreurs.md) | les 27 erreurs, avec un exemple et la correction |
+| [docs/exemples.md](Docs/exemples.md) | programmes complets en 0, 1, 2 et 3 adresses |
+| [docs/architecture.md](Docs/architecture.md) | les étapes du compilateur, pour contribuer |
 
 ## Fonctionnalités
 
@@ -71,4 +71,4 @@ Les exemples proposés dans l'éditeur sont générés à partir de `docs/exempl
 
 ## Contribuer
 
-Lire [docs/architecture.md](docs/architecture.md). Une règle du langage se modifie d'abord dans la documentation, puis dans le code.
+Lire [docs/architecture.md](Docs/architecture.md). Une règle du langage se modifie d'abord dans la documentation, puis dans le code.
