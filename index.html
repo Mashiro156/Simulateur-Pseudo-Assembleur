@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V8086</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e1726'/%3E%3Cpath d='M7 8l9 16 9-16' fill='none' stroke='%2345d0c4' stroke-width='3' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M7 8l9 16 9-16"/></svg>
+      <div>
+        <h1>V8086</h1>
+        <p>Pseudo-assembleur du cours d'architecture des ordinateurs</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <label for="samples">Exemples</label>
+      <select id="samples" aria-label="Exemples"></select>
+      <button id="btnTheme" class="btn ghost" title="Changer de thème" aria-label="Changer de thème">Thème</button>
+      <a class="btn ghost" href="https://github.com/Mashiro156" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="left">
+      <div class="toolbar" role="toolbar" aria-label="Commandes">
+        <button id="btnRun" class="btn primary" title="Exécuter tout, ou reprendre">Exécuter tout</button>
+        <button id="btnStep" class="btn" title="Exécuter une instruction">Pas à pas</button>
+        <button id="btnBack" class="btn" title="Annuler la dernière instruction" disabled>Retour</button>
+        <button id="btnReset" class="btn" title="Recompiler et repartir de zéro">Reset</button>
+        <div class="speed">
+          <label for="speed">Vitesse</label>
+          <input id="speed" type="range" min="1" max="5" value="3" step="1">
+        </div>
+      </div>
+
+      <div class="panel editor-panel">
+        <div class="panel-head"><span>Éditeur</span><span id="lineCount" class="muted"></span></div>
+        <div id="editor"></div>
+        <div class="statusbar">
+          <span id="analysis" class="analysis"></span>
+          <span id="dirty" class="badge warn" hidden>Code modifié depuis le dernier lancement</span>
+        </div>
+      </div>
+
+      <div class="panel console-panel">
+        <div class="panel-head">
+          <span>Console</span>
+          <button id="btnClear" class="link">Effacer</button>
+        </div>
+        <div id="console" class="console" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <aside class="right">
+      <div class="panel" id="flagPanel">
+        <div class="panel-head"><span>Registre drapeau</span><span id="flagValue" class="value">vide</span></div>
+        <div class="flag-chips">
+          <span id="chipNeg" class="chip">&lt; 0</span>
+          <span id="chipZero" class="chip">= 0</span>
+          <span id="chipPos" class="chip">&gt; 0</span>
+        </div>
+        <p class="hint">Résultat de la dernière opération arithmétique. Les branchements le lisent.</p>
+      </div>
+
+      <div class="panel two">
+        <div>
+          <div class="panel-head"><span>Accumulateur</span></div>
+          <div id="acValue" class="big value">—</div>
+        </div>
+        <div>
+          <div class="panel-head"><span>Prochaine ligne</span></div>
+          <div id="pcValue" class="big value">—</div>
+        </div>
+      </div>
+
+      <div class="panel grow">
+        <div class="panel-head"><span>Mémoire</span><span id="memHint" class="muted"></span></div>
+        <div class="scroll">
+          <table class="mem">
+            <thead><tr><th>Adresse</th><th>Valeur</th></tr></thead>
+            <tbody id="memBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span>Pile</span><span class="muted">TL : tête · SL : dessous</span></div>
+        <div id="stack" class="stack"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="src/language.js"></script>
+  <script src="src/errors/errors.js"></script>
+  <script src="src/lexer/lexer.js"></script>
+  <script src="src/parser/parser.js"></script>
+  <script src="src/semantic/semantic.js"></script>
+  <script src="src/compiler.js"></script>
+  <script src="src/vm/vm.js"></script>
+  <script src="src/ui/samples.js"></script>
+  <script src="src/ui/help.js"></script>
+  <script src="src/ui/highlight.js"></script>
+  <script src="src/ui/editor.js"></script>
+  <script src="src/ui/app.js"></script>
+</body>
+</html>
