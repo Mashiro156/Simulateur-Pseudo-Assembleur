@@ -31,6 +31,8 @@ texte du programme
 | Machine virtuelle | programme vérifié | états successifs | exécute une instruction par pas, signale les erreurs d'exécution |
 | Interface | états et erreurs | affichage | éditeur, panneaux d'état, console, commandes |
 
+Le jeu d'instructions (mnémoniques, directives, nombre d'opérandes, synonymes) est défini une seule fois, dans `src/language.js`, et partagé par toutes les étapes.
+
 Les analyses s'enchaînent dans cet ordre sur tout le programme. L'analyse s'arrête à la première erreur ; le collecteur d'erreurs est isolé pour pouvoir, plus tard, en rapporter plusieurs sans modifier les étapes.
 
 ## Les erreurs
@@ -52,22 +54,28 @@ Elle ne contient aucune règle du langage. Elle appelle les analyses et la machi
 ## Règles pour contribuer
 
 - Une règle du langage se change d'abord dans [syntaxe.md](syntaxe.md) ou [instructions.md](instructions.md), puis dans le code.
-- Chaque code d'erreur a un exemple dans [erreurs.md](erreurs.md) : ces exemples servent de tests (le code attendu, la ligne et la colonne).
+- Chaque code d'erreur a un exemple dans [erreurs.md](erreurs.md) : ces exemples servent de tests (le code attendu et le message exact, avec la ligne et la colonne).
 - Les programmes de [exemples.md](exemples.md) servent de tests d'exécution, avec leurs sorties.
+- Pour ajouter une erreur : l'ajouter au catalogue (`src/errors/errors.js`), écrire son exemple dans `erreurs.md`, puis la signaler à l'étape concernée.
 - Aucune ressource n'est chargée depuis internet (bibliothèques, polices, icônes) : tout est dans le dépôt. La version hors ligne prévue ne doit demander aucun changement de ce côté.
 
-## Organisation proposée
-
-Ce découpage n'est pas encore en place dans le code actuel.
+## Organisation du dépôt
 
 ```text
+index.html           page de l'application
+css/styles.css       styles (thèmes sombre et clair)
 src/
-  lexer/       analyse lexicale
-  parser/      analyse syntaxique
-  semantic/    analyse sémantique
-  vm/          machine virtuelle
-  errors/      catalogue et formatage des erreurs
-  ui/          interface
-docs/
-tests/
+  language.js        mots réservés, formats, nombre d'opérandes
+  errors/            catalogue des codes, formatage des messages, collecteur
+  lexer/             analyse lexicale
+  parser/            analyse syntaxique
+  semantic/          analyse sémantique
+  compiler.js        enchaîne les trois analyses
+  vm/                machine virtuelle
+  ui/                éditeur, coloration, aide au survol, panneaux, exemples
+docs/                documentation (source des tests)
+tests/               tests du noyau ; tests/ui : scénarios dans un navigateur
+tools/               build-samples.js : génère les exemples de l'éditeur
 ```
+
+Chaque fichier de `src/` se charge aussi bien par une balise `<script>` (le site) que par `require` (les tests).

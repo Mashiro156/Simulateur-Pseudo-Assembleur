@@ -728,7 +728,7 @@ Erreur E406 — saisie invalide « abc »  (ligne 1, colonne 6)
 Aide : READ attend un nombre réel (par exemple 12 ou -3.5).
 ```
 
-Correction : Saisir un nombre : `12`, `-3`, `2.5`.
+Correction : Saisir un nombre : `12`, `-3`, `2.5`. Le séparateur décimal est le point : `2,5` est refusé.
 
 ### E407
 

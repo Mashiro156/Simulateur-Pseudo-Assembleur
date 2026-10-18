@@ -18,7 +18,7 @@ END
 
 Sortie : `X = 25`
 
-Pour l'exécuter : ouvrir V8086 dans un navigateur, coller le programme dans l'éditeur, puis « Exécuter tout » pour aller jusqu'au bout, ou « Pas à pas » pour avancer une instruction à la fois.
+Pour l'exécuter : ouvrir V8086 dans un navigateur (en local, ouvrir `index.html` : aucune installation, aucune connexion nécessaire), coller le programme dans l'éditeur, puis « Exécuter tout » pour aller jusqu'au bout, ou « Pas à pas » pour avancer une instruction à la fois.
 
 ## Le langage
 
@@ -47,16 +47,27 @@ Une convention à retenir : **les majuscules désignent les instructions et les 
 
 - Vérification avant l'exécution : les erreurs sont numérotées et indiquent la ligne, la colonne et une aide.
 - Exécution complète à vitesse réglable, ou pas à pas avec retour arrière.
-- Points d'arrêt.
+- Points d'arrêt : un clic dans la marge, à gauche du numéro de ligne.
 - Coloration du code, erreurs soulignées sur la ligne, aide au survol des instructions.
 - Mémoire, accumulateur, pile (repères TL et SL du cours) et registre drapeau visibles, avec les valeurs modifiées mises en évidence.
+- Valeurs de la mémoire modifiables à la main quand l'exécution est à l'arrêt (clic sur la valeur).
+- Thème sombre ou clair.
 - Pas d'autocomplétion : c'est un outil pour apprendre le langage, et il faut savoir écrire les instructions.
 
 ## Statut
 
-Ce dépôt décrit la version cible de V8086. Le code actuel est un simulateur en un seul fichier qui ne respecte pas encore toutes les règles décrites ici : commentaires en `;`, registres `R1` à `R4`, valeurs immédiates, variables prédéfinies, erreurs détectées seulement pendant l'exécution. La mise en conformité du code est la prochaine étape.
+V8086 est en ligne. Une version exécutable hors ligne est prévue ensuite : le code ne charge déjà aucune ressource depuis internet.
 
-V8086 est en ligne. Une version exécutable hors ligne est prévue ensuite.
+## Tests
+
+```text
+npm test            # noyau, machine virtuelle, coloration, exemples de la documentation
+npm run test:ui     # scénarios de l'interface dans un navigateur (demande Playwright)
+```
+
+Les tests rejouent les exemples de la documentation : chaque erreur de [docs/erreurs.md](docs/erreurs.md) doit produire exactement le message écrit, et chaque programme de [docs/exemples.md](docs/exemples.md) doit donner la sortie annoncée. Si le code et la documentation divergent, un test échoue.
+
+Les exemples proposés dans l'éditeur sont générés à partir de `docs/exemples.md` : après l'avoir modifié, lancer `npm run samples`.
 
 ## Contribuer
 

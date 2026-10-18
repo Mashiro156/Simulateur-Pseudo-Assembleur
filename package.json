@@ -1,0 +1,11 @@
+{
+  "name": "v8086",
+  "version": "1.0.0",
+  "description": "Compilateur et simulateur du pseudo-assembleur du cours d'architecture des ordinateurs",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:ui": "node tests/ui/scenarios.js",
+    "samples": "node tools/build-samples.js"
+  }
+}
