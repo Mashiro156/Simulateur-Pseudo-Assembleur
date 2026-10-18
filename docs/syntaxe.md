@@ -94,7 +94,9 @@ Les directives ne sont pas des instructions : elles sont lues avant l'exécution
 DATA NOM, valeur
 ```
 
-Crée la variable `NOM` avec la valeur donnée. Un même nom ne peut être déclaré qu'une fois (E304). Par convention, les `DATA` sont placés en tête du programme, mais ils peuvent apparaître n'importe où.
+Crée la variable `NOM` avec la valeur donnée, pour le programme en cours. Un même nom ne peut être déclaré qu'une fois (E304). Par convention, les `DATA` sont placés en tête du programme, mais ils peuvent apparaître n'importe où.
+
+Si une variable permanente (voir plus bas) porte déjà ce nom, la valeur du `DATA` la remplace pour ce programme.
 
 ### MODE
 
@@ -108,11 +110,12 @@ Sans `MODE`, le format de chaque instruction est déduit de son nombre d'opéran
 
 ## Variables
 
-Les variables fonctionnent comme en Python : une variable existe à partir du moment où elle reçoit une première valeur, et la mémoire est vide au début de chaque exécution. Rien ne subsiste d'un programme à l'autre.
+Les variables fonctionnent comme en Python : une variable existe à partir du moment où elle reçoit une première valeur, et la mémoire est vide au début de chaque exécution. Rien ne subsiste d'un programme à l'autre, sauf les variables permanentes.
 
 Une variable reçoit sa première valeur par :
 
 - `DATA` ;
+- une variable permanente (voir plus bas) ;
 - `READ` ;
 - `STORE` ou `POP` ;
 - une instruction à 3 adresses, dans sa destination (si la destination n'est pas aussi l'une des deux sources) ;
@@ -120,7 +123,7 @@ Une variable reçoit sa première valeur par :
 
 Lire une variable qui n'a pas de valeur est une erreur. Elle est signalée à deux moments :
 
-- **avant l'exécution (E302)** si le nom ne reçoit de valeur nulle part dans le programme : c'est presque toujours une faute de frappe, et le programme n'est pas lancé ;
+- **avant l'exécution (E302)** si le nom ne reçoit de valeur nulle part dans le programme (ni `DATA`, ni variable permanente, ni écriture) : c'est presque toujours une faute de frappe, et le programme n'est pas lancé ;
 - **pendant l'exécution (E403)** si le nom reçoit une valeur ailleurs, mais pas encore quand la ligne s'exécute. Le programme démarre et s'arrête seulement si l'erreur se produit.
 
 Une instruction à 2 adresses lit son premier opérande avant d'y écrire (`ADD X, A` calcule `x + a`) : elle n'initialise donc pas `X`. Une instruction à 3 adresses dont la destination est aussi une source (`ADD A, B, A`) non plus.
@@ -134,6 +137,20 @@ SUB X, X          # X vaut 0, même si X n'existait pas
 SUB T, T, T       # idem, à 3 adresses
 SUB X, X, Y       # Y vaut 0 ; X n'est pas lue
 ```
+
+
+### Variables permanentes
+
+Deux façons d'initialiser une case mémoire :
+
+- **`DATA`**, dans le code : pour les cases propres au programme en cours d'écriture.
+- **Le bouton « + Variable »** du panneau Mémoire : pour les cases que l'on utilise dans tous ses programmes, par exemple une case `UN` qui contient 1 ou une case `ZERO` qui contient 0. On donne un nom (majuscules, mêmes règles que dans le code) et une valeur réelle.
+
+Une variable permanente existe dès le début de chaque exécution, sans rien écrire dans le code, et elle est conservée dans le navigateur d'une session à l'autre. Les boutons ✎ et ✕ de sa ligne dans le tableau permettent de la modifier ou de la supprimer. « Exporter » enregistre la liste dans un fichier (`v8086-variables.json`) et « Importer » la recharge : c'est le moyen de la transporter sur une autre machine ou de la partager.
+
+Si un `DATA` porte le nom d'une variable permanente, **la valeur du `DATA` l'emporte** pour ce programme, et c'est elle qui est affichée dans la mémoire (la ligne est alors marquée `DATA`). La variable permanente n'est pas modifiée : elle reprend sa valeur dans les programmes qui n'ont pas ce `DATA`.
+
+Une modification de la liste des variables permanentes s'applique à la prochaine exécution (« Reset » ou « Exécuter tout »).
 
 ## Fin du programme
 

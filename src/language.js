@@ -23,12 +23,14 @@
   function arityOk(name, n) {
     if (isArith(name)) return n >= 0 && n <= 3;
     if (isEnd(name)) return n === 0;
+    if (name === 'POP') return n <= 1;
     return n === 1;
   }
 
   function arityText(name) {
     if (isArith(name)) return '0, 1, 2 ou 3 opérandes';
     if (isEnd(name)) return 'aucun opérande';
+    if (name === 'POP') return '0 ou 1 opérande';
     return '1 opérande';
   }
 
@@ -36,6 +38,7 @@
     if (isArith(name)) return `${name}, ${name} X, ${name} X, Y ou ${name} X, Y, Z`;
     if (isEnd(name)) return name;
     if (isBranch(name)) return `${name} ÉTIQUETTE`;
+    if (name === 'POP') return 'POP ou POP X';
     return `${name} X`;
   }
 

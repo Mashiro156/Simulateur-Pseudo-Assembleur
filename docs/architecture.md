@@ -33,6 +33,8 @@ texte du programme
 
 Le jeu d'instructions (mnémoniques, directives, nombre d'opérandes, synonymes) est défini une seule fois, dans `src/language.js`, et partagé par toutes les étapes.
 
+Les variables permanentes (voir [syntaxe.md](syntaxe.md#variables-permanentes)) sont une liste de noms et de valeurs que l'interface donne au compilateur (`compile(source, { permanent })`). L'analyse sémantique les compte comme initialisées ; la machine les place en mémoire avant les `DATA`, qui les écrasent en cas de même nom. Leur validation et leur export sont dans `src/permanent.js`, leur stockage dans l'interface.
+
 Les analyses s'enchaînent dans cet ordre sur tout le programme. L'analyse s'arrête à la première erreur ; le collecteur d'erreurs est isolé pour pouvoir, plus tard, en rapporter plusieurs sans modifier les étapes.
 
 ## Les erreurs
@@ -50,12 +52,20 @@ Elle ne contient aucune règle du langage. Elle appelle les analyses et la machi
 - L'analyse tourne pendant la frappe pour souligner les erreurs, mais **elle ne modifie pas l'état de la machine**.
 - La machine n'est remise à zéro que par « Exécuter » ou « Reset ». Une indication signale que le code a été modifié depuis le dernier lancement.
 - L'éditeur n'a pas d'autocomplétion, volontairement.
+- Sur petit écran (moins de 760 px), un seul des trois panneaux (éditeur, console, machine) est affiché, choisi par la barre d'onglets ; la console s'affiche d'elle-même quand une erreur ou une saisie `READ` demande l'attention.
+
+## L'application hors connexion (PWA)
+
+`manifest.webmanifest` décrit l'application (nom, icônes, affichage) et `sw.js` met ses fichiers en cache à l'installation. Le service worker n'est enregistré (`src/ui/pwa.js`) que sur un site servi en HTTP(S).
+
+**À chaque modification d'un fichier de l'application, changer `VERSION` dans `sw.js`** : c'est ce changement qui renouvelle le cache chez les utilisateurs. Tout nouveau fichier chargé par `index.html` doit aussi être ajouté à la liste `FILES` ; un test le vérifie.
 
 ## Règles pour contribuer
 
 - Une règle du langage se change d'abord dans [syntaxe.md](syntaxe.md) ou [instructions.md](instructions.md), puis dans le code.
 - Chaque code d'erreur a un exemple dans [erreurs.md](erreurs.md) : ces exemples servent de tests (le code attendu et le message exact, avec la ligne et la colonne).
 - Les programmes de [exemples.md](exemples.md) servent de tests d'exécution, avec leurs sorties.
+- Toute modification de fichier de l'application s'accompagne d'un changement de `VERSION` dans `sw.js` (voir ci-dessus).
 - Pour ajouter une erreur : l'ajouter au catalogue (`src/errors/errors.js`), écrire son exemple dans `erreurs.md`, puis la signaler à l'étape concernée.
 - Aucune ressource n'est chargée depuis internet (bibliothèques, polices, icônes) : tout est dans le dépôt. La version hors ligne prévue ne doit demander aucun changement de ce côté.
 
@@ -63,9 +73,13 @@ Elle ne contient aucune règle du langage. Elle appelle les analyses et la machi
 
 ```text
 index.html           page de l'application
-css/styles.css       styles (thèmes sombre et clair)
+manifest.webmanifest description de l'application installable
+sw.js                service worker : cache pour le mode hors connexion
+icons/               icônes de l'application
+css/styles.css       styles (thèmes sombre et clair, petit écran)
 src/
   language.js        mots réservés, formats, nombre d'opérandes
+  permanent.js       variables permanentes : validation, export, import
   errors/            catalogue des codes, formatage des messages, collecteur
   lexer/             analyse lexicale
   parser/            analyse syntaxique

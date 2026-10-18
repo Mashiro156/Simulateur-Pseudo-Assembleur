@@ -8,10 +8,12 @@
   const E = V.errors;
   const H = V.highlight;
   const HELP = V.help;
+  const P = V.permanent;
 
   const DOCS_ERRORS = 'docs/erreurs.md'; // page d'aide ouverte par le code d'une erreur
   const KEY_CODE = 'v8086.code';
   const KEY_THEME = 'v8086.theme';
+  const KEY_PERM = 'v8086.permanent';
   const DELAYS = [900, 450, 180, 60, 0]; // ms entre deux instructions selon la vitesse 1 à 5
   const BATCH_MAX = 300; // instructions par tour à la vitesse maximale
 
@@ -22,7 +24,8 @@
   };
 
   let vm = null;
-  let loadedSource = null;
+  let loadedKey = null; // texte + variables permanentes au moment de la compilation
+  let permanent = [];  // variables permanentes : { name, value }
   let analysis = null;
   let running = false;
   let runTimer = null;
@@ -37,7 +40,8 @@
     hover,
   });
 
-  const isDirty = () => vm !== null && loadedSource !== editor.getValue();
+  const currentKey = () => editor.getValue() + '\u0000' + P.signature(permanent);
+  const isDirty = () => vm !== null && loadedKey !== currentKey();
   const srcOf = (ins) => ins.raw + (ins.ops.length ? ` ${ins.ops.map((o) => o.text).join(', ')}` : '');
 
   function hover(ctx) {
@@ -80,7 +84,7 @@
   // L'analyse en direct ne touche jamais à l'état de la machine.
   function runAnalysis() {
     const text = editor.getValue();
-    analysis = text.trim() ? compile(text) : null;
+    analysis = text.trim() ? compile(text, { permanent }) : null;
     renderAnalysisStatus();
     editor.setError(errorMark());
     updateDirty();
@@ -114,6 +118,18 @@
     $('dirty').hidden = !isDirty();
   }
 
+  // ----------------------------------------------------------------- onglets (petit écran)
+  // Sur ordinateur les trois panneaux sont visibles ensemble : l'onglet n'a alors aucun effet.
+  function showTab(name) {
+    document.body.dataset.tab = name;
+    document.querySelectorAll('.tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
+    if (name === 'editor') editor.remeasure();
+  }
+  document.querySelector('.tabbar').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-tab]');
+    if (b) showTab(b.dataset.tab);
+  });
+
   // ----------------------------------------------------------------- console
   const consoleEl = $('console');
 
@@ -136,6 +152,7 @@
   }
 
   function logError(diag, lines) {
+    showTab('console');
     const row = document.createElement('div');
     row.className = 'cl err';
     const tag = document.createElement('span');
@@ -158,18 +175,18 @@
     stopRun();
     removeReadBox();
     const text = editor.getValue();
-    const c = compile(text);
+    const c = compile(text, { permanent });
     analysis = c;
     renderAnalysisStatus();
     if (!c.ok) {
       vm = null;
-      loadedSource = null;
+      loadedKey = null;
       logError(c.error, c.lines);
       refresh();
       return false;
     }
     vm = new VM(c.program);
-    loadedSource = text;
+    loadedKey = currentKey();
     const n = c.program.instrs.length;
     logLine('info', '✓', `Compilation réussie : ${n} instruction${n > 1 ? 's' : ''}. Prêt à la ligne ${c.program.instrs[0].line}.`);
     refresh();
@@ -254,6 +271,7 @@
   // resume : l'exécution continue après la saisie si elle était en cours.
   function askInput(variable, resume) {
     removeReadBox();
+    showTab('console');
     const form = document.createElement('form');
     form.className = 'readbox';
     form.innerHTML = `<label>READ ${H.esc(variable)} :</label>` +
@@ -364,16 +382,28 @@
     $('pcValue').textContent = pc;
 
     const body = $('memBody');
-    body.classList.toggle('editable', canEditMemory());
-    $('memHint').textContent = canEditMemory() && vm.mem.size ? 'clic sur une valeur pour la modifier' : '';
+    const editable = canEditMemory();
+    body.classList.toggle('editable', editable);
+    $('memHint').textContent = editable && vm.mem.size ? 'Clic sur une valeur pour la modifier.' : '';
     body.innerHTML = '';
-    if (!vm || vm.mem.size === 0) {
-      body.innerHTML = '<tr><td colspan="2" class="empty">Aucune variable pour l\'instant</td></tr>';
+    const permNames = new Set(permanent.map((p) => p.name));
+    const rows = vm ? [...vm.mem] : permanent.map((p) => [p.name, p.value]);
+    if (rows.length === 0) {
+      body.innerHTML = '<tr><td colspan="3" class="empty">Aucune variable pour l\'instant</td></tr>';
     } else {
-      for (const [name, value] of vm.mem) {
+      for (const [name, value] of rows) {
+        const origin = vm ? vm.origin(name) : (permNames.has(name) ? 'permanent' : null);
+        const badge = origin === 'data' ? ' <span class="origin" title="Déclarée par DATA dans ce programme">DATA</span>'
+          : origin === 'permanent' ? ' <span class="origin" title="Variable permanente">perm.</span>' : '';
+        const actions = permNames.has(name)
+          ? `<button class="icon-btn" data-act="edit" data-name="${H.esc(name)}" title="Modifier la variable permanente ${H.esc(name)}" aria-label="Modifier la variable permanente ${H.esc(name)}">✎</button>` +
+            `<button class="icon-btn" data-act="del" data-name="${H.esc(name)}" title="Supprimer la variable permanente ${H.esc(name)}" aria-label="Supprimer la variable permanente ${H.esc(name)}">✕</button>`
+          : '';
         const tr = document.createElement('tr');
         tr.dataset.name = name;
-        tr.innerHTML = `<td class="name">${H.esc(name)}</td><td class="val"><button class="val-btn" data-name="${H.esc(name)}" tabindex="${canEditMemory() ? 0 : -1}">${fmt(value)}</button></td>`;
+        tr.innerHTML = `<td class="name">${H.esc(name)}${badge}</td>` +
+          `<td class="val"><button class="val-btn" data-name="${H.esc(name)}" tabindex="${editable ? 0 : -1}">${fmt(value)}</button></td>` +
+          `<td class="act">${actions}</td>`;
         body.appendChild(tr);
       }
     }
@@ -440,6 +470,91 @@
     input.addEventListener('blur', () => finish(true));
   });
 
+  // ------------------------------------------------- variables permanentes
+  function savePermanent() {
+    store.set(KEY_PERM, P.serialize(permanent));
+    // Une machine encore intacte reprend aussitôt la nouvelle liste ; sinon « Reset » est nécessaire.
+    runAnalysis();
+    if (vm && !vm.started && analysis && analysis.ok) {
+      vm = new VM(analysis.program);
+      loadedKey = currentKey();
+    }
+    refresh();
+  }
+
+  const dlg = $('varDialog');
+  const nameIn = $('varName'), valueIn = $('varValue'), errorEl = $('varError');
+  let editing = null;
+
+  function openVarDialog(name) {
+    editing = name || null;
+    const cur = name ? permanent.find((p) => p.name === name) : null;
+    $('varTitle').textContent = name ? `Modifier ${name}` : 'Nouvelle variable permanente';
+    nameIn.value = name || '';
+    nameIn.readOnly = !!name;
+    valueIn.value = cur ? fmt(cur.value) : '';
+    errorEl.hidden = true;
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    (name ? valueIn : nameIn).focus();
+  }
+  const closeVarDialog = () => { if (typeof dlg.close === 'function') dlg.close(); else dlg.removeAttribute('open'); };
+
+  $('btnAddVar').addEventListener('click', () => openVarDialog(null));
+  $('varCancel').addEventListener('click', closeVarDialog);
+  $('varForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = nameIn.value.trim();
+    const value = P.parseValue(valueIn.value);
+    const bad = editing ? null : P.checkName(name);
+    if (bad || value === null) {
+      errorEl.textContent = bad || 'La valeur doit être un nombre réel (par exemple 12 ou 2.5, avec un point).';
+      errorEl.hidden = false;
+      return;
+    }
+    const replaced = permanent.some((p) => p.name === name);
+    permanent = P.upsert(permanent, name, value);
+    savePermanent();
+    logLine('info', '✎', `Variable permanente ${name} ${replaced ? 'modifiée' : 'ajoutée'} : ${fmt(value)}`);
+    closeVarDialog();
+  });
+
+  $('memBody').addEventListener('click', (e) => {
+    const b = e.target.closest('.icon-btn');
+    if (!b) return;
+    if (b.dataset.act === 'edit') openVarDialog(b.dataset.name);
+    else {
+      permanent = P.remove(permanent, b.dataset.name);
+      savePermanent();
+      logLine('info', '✎', `Variable permanente ${b.dataset.name} supprimée.`);
+    }
+  });
+
+  $('btnExport').addEventListener('click', () => {
+    if (!permanent.length) { logLine('info', '·', 'Aucune variable permanente à exporter.'); return; }
+    const blob = new Blob([P.serialize(permanent)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'v8086-variables.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    logLine('info', '↓', `${permanent.length} variable${permanent.length > 1 ? 's' : ''} permanente${permanent.length > 1 ? 's' : ''} exportée${permanent.length > 1 ? 's' : ''}.`);
+  });
+
+  $('btnImport').addEventListener('click', () => $('fileImport').click());
+  $('fileImport').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const r = P.parse(await file.text());
+    if (r.fatal) { logLine('info', '✕', `Import impossible : ${r.fatal}`); return; }
+    for (const v of r.variables) permanent = P.upsert(permanent, v.name, v.value);
+    savePermanent();
+    logLine('info', '↑', `${r.variables.length} variable${r.variables.length > 1 ? 's' : ''} importée${r.variables.length > 1 ? 's' : ''}.`);
+    for (const x of r.rejected) logLine('info', '✕', `${x.name} ignorée : ${x.reason}`);
+  });
+
   // -------------------------------------------------------------- exemples
   const samples = V.samples;
   const select = $('samples');
@@ -452,7 +567,7 @@
     stopRun();
     removeReadBox();
     vm = null;
-    loadedSource = null;
+    loadedKey = null;
     editor.clearBreakpoints();
     breakpoints = new Set();
     editor.setValue(s.source);
@@ -475,6 +590,8 @@
   });
 
   // --------------------------------------------------------------- démarrage
+  const storedPerm = store.get(KEY_PERM);
+  if (storedPerm) permanent = P.parse(storedPerm).variables;
   const savedTheme = store.get(KEY_THEME);
   if (savedTheme === 'light' || savedTheme === 'dark') applyTheme(savedTheme);
   editor.setValue(store.get(KEY_CODE) || samples[0].source);

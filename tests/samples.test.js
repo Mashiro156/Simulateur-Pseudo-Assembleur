@@ -15,9 +15,6 @@ test('src/ui/samples.js est à jour (relancer node tools/build-samples.js sinon)
 
 test('chaque exemple de l\'éditeur compile et s\'exécute sans erreur', () => {
   const samples = require(path.join(root, 'src/ui/samples.js'));
-  assert.equal(samples.length, 11);
-  for (const s of samples) {
-    const inputs = ['3', '4', '10', '2'];
-    assert.equal(codeOf(s.source, inputs), null, s.label);
-  }
+  assert.equal(samples.length, 5);
+  for (const s of samples) assert.equal(codeOf(s.source, []), null, s.label);
 });

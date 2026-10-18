@@ -27,6 +27,7 @@
       // Une étape ne s'exécute que si les précédentes n'ont signalé aucune erreur :
       // cela évite les erreurs en cascade (une ligne illisible fait manquer des définitions).
       if (!collector.errors.length) program = Parser.parse(rows, lines, collector);
+      if (program) program.permanent = (options && options.permanent) || [];
       if (!collector.errors.length) Semantic.analyze(program, collector);
       if (program) program.commentSpans = spans;
     } catch (e) {

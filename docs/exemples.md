@@ -1,412 +1,146 @@
 # Exemples
 
-Chaque programme de ce document a été vérifié : il compile sans erreur et donne la sortie indiquée avec les valeurs de saisie données. Ils servent aussi de modèles de style : majuscules, `DATA` en tête, commentaires courts.
+Ce sont les exemples de la première version du simulateur, adaptés à la syntaxe de V8086 : valeurs déclarées par `DATA` (il n'y a pas de valeur immédiate), un `END` en fin de programme et un `WRITE` pour afficher le résultat. Chacun compile sans erreur et donne la sortie indiquée ; ils sont disponibles dans le menu **Exemples** de l'éditeur.
 
-## 1. Premier programme (3 adresses)
+## 1. Branchements conditionnels (BGT)
 
-Additionne deux nombres déclarés avec `DATA` et affiche le résultat.
+Un branchement ne prend que l'étiquette de destination : il lit le registre drapeau, c'est-à-dire le résultat de la dernière opération arithmétique. Ici `SUB B` laisse `A − B` dans le registre drapeau, et `BGT` saute si ce résultat est positif.
 
 ```text
-MODE 3
+MODE 1
 DATA A, 15
 DATA B, 10
+DATA ZERO, 0
+DATA UN, 1
 
-ADD A, B, X      # X reçoit A + B
-WRITE X
+LOAD A                # AC reçoit A (15)
+SUB B                 # AC reçoit 15 − 10 = 5 : le registre drapeau reçoit 5
+BGT EST_POSITIF       # 5 > 0 : saut à EST_POSITIF
+
+LOAD ZERO             # cette partie est ignorée en cas de saut
+STORE RESULTAT
+BR FIN
+
+EST_POSITIF: LOAD UN
+STORE RESULTAT        # RESULTAT reçoit 1 : A est plus grand que B
+FIN: WRITE RESULTAT
 END
 ```
 
 Sortie :
 
 ```text
-X = 25
+RESULTAT = 1
 ```
 
-## 2. Boucle : somme de N à 1 (1 adresse)
+## 2. Format 3 adresses (destination à la fin)
 
-Le compteur est décrémenté par un `SUB`, puis `BGT` teste le résultat de ce `SUB` pour décider de recommencer. Le `STORE` placé entre les deux ne modifie pas le registre drapeau. Il n'existe pas de valeur immédiate : le pas de 1 est déclaré dans `UN`.
+Convention du cours : `OP source1, source2, destination`.
+
+```text
+MODE 3
+DATA A, 10
+DATA B, 5
+DATA TROIS, 3
+DATA DEUX, 2
+
+ADD A, B, T1          # T1 reçoit A + B = 15
+SUB T1, TROIS, T2     # T2 reçoit T1 − 3 = 12
+MPY T1, T2, X         # X reçoit T1 × T2 = 180
+DIV X, DEUX, RES      # RES reçoit X ÷ 2 = 90
+WRITE RES
+END
+```
+
+Sortie :
+
+```text
+RES = 90
+```
+
+## 3. Format 0 adresse (pile)
+
+Calcul de `RES = (A + B) × C`. Les opérations sans opérande dépilent TL et SL et empilent le résultat.
+
+```text
+MODE 0
+DATA A, 10
+DATA B, 5
+DATA C, 3
+
+PUSH A                # empile A (10)
+PUSH B                # empile B (5)
+ADD                   # dépile 5 et 10, empile 15
+PUSH C                # empile C (3)
+MPY                   # dépile 3 et 15, empile 45
+POP RES               # dépile dans RES
+WRITE RES
+END
+```
+
+Sortie :
+
+```text
+RES = 45
+```
+
+## 4. Boucle de décompte (BEZ, BR)
+
+Additionne les nombres de N à 1. `LOAD` ne modifie pas le registre drapeau : pour tester le compteur, on le fait passer par une soustraction de `ZERO`, dont le résultat est le compteur lui-même, puis `BEZ` le lit.
 
 ```text
 MODE 1
 DATA N, 4
 DATA UN, 1
-DATA SOMME, 0
+DATA ZERO, 0
 
 LOAD N
-STORE COMPTEUR
-BOUCLE: LOAD SOMME
+STORE COMPTEUR        # COMPTEUR reçoit N (4)
+LOAD ZERO
+STORE SOMME           # SOMME reçoit 0
+
+BOUCLE: LOAD COMPTEUR
+        SUB ZERO      # le registre drapeau reçoit COMPTEUR
+        BEZ FIN       # COMPTEUR = 0 : sortie de la boucle
+        LOAD SOMME
         ADD COMPTEUR
-        STORE SOMME
+        STORE SOMME   # SOMME reçoit SOMME + COMPTEUR
         LOAD COMPTEUR
         SUB UN
-        STORE COMPTEUR     # STORE ne modifie pas le registre drapeau
-        BGT BOUCLE         # teste le résultat du SUB
-WRITE SOMME
+        STORE COMPTEUR
+        BR BOUCLE     # retour au début de la boucle
+FIN:    LOAD SOMME
+        STORE RES     # RES contient la somme totale
+        WRITE RES
+        END
+```
+
+Sortie :
+
+```text
+RES = 10
+```
+
+## 5. Format 1 adresse (accumulateur)
+
+Toutes les opérations passent par l'accumulateur AC.
+
+```text
+MODE 1
+DATA A, 10
+DATA B, 5
+DATA C, 3
+
+LOAD A                # AC reçoit 10
+SUB B                 # AC reçoit 10 − 5 = 5
+MPY C                 # AC reçoit 5 × 3 = 15
+STORE RES             # RES reçoit 15
+WRITE RES
 END
 ```
 
 Sortie :
 
 ```text
-SOMME = 10
-```
-
-## 3. Plus grand de deux nombres (2 adresses)
-
-Exercice 2 du cours (page 18) : afficher le plus grand de deux nombres, ou 0 s'ils sont égaux. La comparaison est la soustraction `x − y` ; les deux branchements lisent son résultat.
-
-```text
-MODE 2
-DATA ZERO, 0
-READ X
-READ Y
-
-SUB T, T
-ADD T, X
-SUB T, Y           # T = x − y : le registre drapeau reçoit x − y
-BEZ EGAUX          # égaux : on affiche 0
-BGT XGRAND         # x > y
-WRITE Y            # sinon y est le plus grand
-END
-XGRAND: WRITE X
-        END
-EGAUX:  WRITE ZERO
-        END
-```
-
-- avec x = 3 et y = 5 : `Y = 5`
-- avec x = 5 et y = 3 : `X = 5`
-- avec x = 4 et y = 4 : `ZERO = 0`
-
-## 4. Expression Z = A × B + C ÷ D (0, 1, 2 et 3 adresses)
-
-Exercice 1 du cours (page 18) : évaluer l'expression, en affichant 0 si D vaut 0. Les quatre programmes font le même travail dans les quatre formats.
-
-Le test de D passe par une opération arithmétique (`LOAD` et `PUSH` ne modifient pas le registre drapeau) : on ajoute `D` à une case nulle et `BEZ` lit le résultat. Le calcul de `C ÷ D` n'a lieu que si D est non nul, ce qui évite l'erreur E401.
-
-### 0 adresse (pile)
-
-```text
-MODE 0
-DATA ZERO, 0
-READ A
-READ B
-READ C
-READ D
-
-PUSH D
-PUSH ZERO
-ADD                # D + 0 : le registre drapeau reçoit D
-POP T
-BEZ NUL            # D = 0 : on affiche 0
-
-PUSH A
-PUSH B
-MPY                # A * B
-PUSH C
-PUSH D
-DIV                # C / D
-ADD                # A * B + C / D
-POP Z
-WRITE Z
-END
-NUL: WRITE ZERO
-     END
-```
-
-Avec a = 3, b = 4, c = 10, d = 2 : `Z = 17`. Avec d = 0 : `ZERO = 0`.
-
-### 1 adresse (accumulateur)
-
-```text
-MODE 1
-DATA ZERO, 0
-READ A
-READ B
-READ C
-READ D
-
-LOAD D
-ADD ZERO           # AC reçoit D + 0 : le registre drapeau reçoit D
-BEZ NUL            # D = 0 : on affiche 0
-
-LOAD A
-MPY B
-STORE P            # P = A * B
-LOAD C
-DIV D
-ADD P              # AC = C / D + A * B
-STORE Z
-WRITE Z
-END
-NUL: WRITE ZERO
-     END
-```
-
-Avec a = 3, b = 4, c = 10, d = 2 : `Z = 17`. Avec d = 0 : `ZERO = 0`.
-
-### 2 adresses
-
-```text
-MODE 2
-DATA ZERO, 0
-READ A
-READ B
-READ C
-READ D
-
-SUB T, T           # T = 0
-ADD T, D           # T = D : le registre drapeau reçoit D
-BEZ NUL            # D = 0 : on affiche 0
-
-MPY A, B           # A = A * B
-DIV C, D           # C = C / D
-ADD A, C           # A = A * B + C / D
-WRITE A
-END
-NUL: WRITE ZERO
-     END
-```
-
-Avec a = 3, b = 4, c = 10, d = 2 : `A = 17`. Avec d = 0 : `ZERO = 0`.
-
-### 3 adresses
-
-```text
-MODE 3
-DATA ZERO, 0
-READ A
-READ B
-READ C
-READ D
-
-ADD D, ZERO, T     # T = D : le registre drapeau reçoit D
-BEZ NUL            # D = 0 : on affiche 0
-
-MPY A, B, P        # P = A * B
-DIV C, D, Q        # Q = C / D
-ADD P, Q, Z        # Z = A * B + C / D
-WRITE Z
-END
-NUL: WRITE ZERO
-     END
-```
-
-Avec a = 3, b = 4, c = 10, d = 2 : `Z = 17`. Avec d = 0 : `ZERO = 0`.
-
-## 5. Trier trois nombres (0, 1, 2 et 3 adresses)
-
-Classer les nombres de façon que le plus grand soit dans A, le suivant dans B et le plus petit dans C. Méthode : trois échanges conditionnels, dans l'ordre (A, B), puis (B, C), puis (A, B). Chaque étape compare par une soustraction, saute par-dessus l'échange si les deux valeurs sont déjà dans l'ordre, et échange sinon.
-
-Il n'y a pas de sous-programme dans le langage : l'échange est écrit à chaque étape. Il se fait par une variable auxiliaire `X` (0, 1 et 2 adresses) ou, à 3 adresses, par trois opérations `ADD` et `SUB` (A ← a + b, B ← A − b = a, A ← A − B = b).
-
-### 0 adresse (pile)
-
-```text
-MODE 0
-READ A
-READ B
-READ C
-
-# Étape 1 : si B > A, échanger A et B
-PUSH B
-PUSH A
-SUB                # B - A
-POP T              # POP ne modifie pas le registre drapeau
-BLE L1
-PUSH A
-PUSH B
-POP A
-POP B
-
-# Étape 2 : si C > B, échanger B et C
-L1: PUSH C
-    PUSH B
-    SUB
-    POP T
-    BLE L2
-    PUSH B
-    PUSH C
-    POP B
-    POP C
-
-# Étape 3 : si B > A, échanger A et B
-L2: PUSH B
-    PUSH A
-    SUB
-    POP T
-    BLE L3
-    PUSH A
-    PUSH B
-    POP A
-    POP B
-
-L3: WRITE A
-    WRITE B
-    WRITE C
-    END
-```
-
-Avec 5, 9, 2 en saisie :
-
-```text
-A = 9
-B = 5
-C = 2
-```
-
-### 1 adresse (accumulateur)
-
-```text
-MODE 1
-READ A
-READ B
-READ C
-
-# Étape 1 : si B > A, échanger A et B
-LOAD B
-SUB A              # B - A
-BLE L1
-LOAD A
-STORE X
-LOAD B
-STORE A
-LOAD X
-STORE B
-
-# Étape 2 : si C > B, échanger B et C
-L1: LOAD C
-    SUB B
-    BLE L2
-    LOAD B
-    STORE X
-    LOAD C
-    STORE B
-    LOAD X
-    STORE C
-
-# Étape 3 : si B > A, échanger A et B
-L2: LOAD B
-    SUB A
-    BLE L3
-    LOAD A
-    STORE X
-    LOAD B
-    STORE A
-    LOAD X
-    STORE B
-
-L3: WRITE A
-    WRITE B
-    WRITE C
-    END
-```
-
-Avec 5, 9, 2 en saisie :
-
-```text
-A = 9
-B = 5
-C = 2
-```
-
-### 2 adresses
-
-```text
-MODE 2
-READ A
-READ B
-READ C
-
-# Étape 1 : si B > A, échanger A et B
-SUB T, T
-ADD T, B
-SUB T, A           # T = B - A
-BLE L1
-SUB X, X           # échange par la variable X
-ADD X, A
-SUB A, A
-ADD A, B
-SUB B, B
-ADD B, X
-
-# Étape 2 : si C > B, échanger B et C
-L1: SUB T, T
-    ADD T, C
-    SUB T, B
-    BLE L2
-    SUB X, X
-    ADD X, B
-    SUB B, B
-    ADD B, C
-    SUB C, C
-    ADD C, X
-
-# Étape 3 : si B > A, échanger A et B
-L2: SUB T, T
-    ADD T, B
-    SUB T, A
-    BLE L3
-    SUB X, X
-    ADD X, A
-    SUB A, A
-    ADD A, B
-    SUB B, B
-    ADD B, X
-
-L3: WRITE A
-    WRITE B
-    WRITE C
-    END
-```
-
-Avec 5, 9, 2 en saisie :
-
-```text
-A = 9
-B = 5
-C = 2
-```
-
-### 3 adresses
-
-```text
-MODE 3
-READ A
-READ B
-READ C
-
-# Étape 1 : si B > A, échanger A et B
-SUB B, A, T        # T = B - A, A et B ne sont pas modifiés
-BLE L1
-ADD A, B, A        # échange sans variable auxiliaire
-SUB A, B, B
-SUB A, B, A
-
-# Étape 2 : si C > B, échanger B et C
-L1: SUB C, B, T
-    BLE L2
-    ADD B, C, B
-    SUB B, C, C
-    SUB B, C, B
-
-# Étape 3 : si B > A, échanger A et B
-L2: SUB B, A, T
-    BLE L3
-    ADD A, B, A
-    SUB A, B, B
-    SUB A, B, A
-
-L3: WRITE A
-    WRITE B
-    WRITE C
-    END
-```
-
-Avec 5, 9, 2 en saisie :
-
-```text
-A = 9
-B = 5
-C = 2
+RES = 15
 ```
