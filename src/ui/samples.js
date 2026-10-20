@@ -4,58 +4,28 @@
   const samples = [
   {
     "id": "s1",
-    "label": "1. Premier programme (3 adresses)",
-    "source": "MODE 3\nDATA A, 15\nDATA B, 10\n\nADD A, B, X      # X reçoit A + B\nWRITE X\nEND\n"
+    "label": "1. Branchements conditionnels (BGT)",
+    "source": "MODE 1\nDATA A, 15\nDATA B, 10\nDATA ZERO, 0\nDATA UN, 1\n\nLOAD A                # AC reçoit A (15)\nSUB B                 # AC reçoit 15 − 10 = 5 : le registre drapeau reçoit 5\nBGT EST_POSITIF       # 5 > 0 : saut à EST_POSITIF\n\nLOAD ZERO             # cette partie est ignorée en cas de saut\nSTORE RESULTAT\nBR FIN\n\nEST_POSITIF: LOAD UN\nSTORE RESULTAT        # RESULTAT reçoit 1 : A est plus grand que B\nFIN: WRITE RESULTAT\nEND\n"
   },
   {
     "id": "s2",
-    "label": "2. Boucle : somme de N à 1 (1 adresse)",
-    "source": "MODE 1\nDATA N, 4\nDATA UN, 1\nDATA SOMME, 0\n\nLOAD N\nSTORE COMPTEUR\nBOUCLE: LOAD SOMME\n        ADD COMPTEUR\n        STORE SOMME\n        LOAD COMPTEUR\n        SUB UN\n        STORE COMPTEUR     # STORE ne modifie pas le registre drapeau\n        BGT BOUCLE         # teste le résultat du SUB\nWRITE SOMME\nEND\n"
+    "label": "2. Format 3 adresses (destination à la fin)",
+    "source": "MODE 3\nDATA A, 10\nDATA B, 5\nDATA TROIS, 3\nDATA DEUX, 2\n\nADD A, B, T1          # T1 reçoit A + B = 15\nSUB T1, TROIS, T2     # T2 reçoit T1 − 3 = 12\nMPY T1, T2, X         # X reçoit T1 × T2 = 180\nDIV X, DEUX, RES      # RES reçoit X ÷ 2 = 90\nWRITE RES\nEND\n"
   },
   {
     "id": "s3",
-    "label": "3. Plus grand de deux nombres (2 adresses)",
-    "source": "MODE 2\nDATA ZERO, 0\nREAD X\nREAD Y\n\nSUB T, T\nADD T, X\nSUB T, Y           # T = x − y : le registre drapeau reçoit x − y\nBEZ EGAUX          # égaux : on affiche 0\nBGT XGRAND         # x > y\nWRITE Y            # sinon y est le plus grand\nEND\nXGRAND: WRITE X\n        END\nEGAUX:  WRITE ZERO\n        END\n"
+    "label": "3. Format 0 adresse (pile)",
+    "source": "MODE 0\nDATA A, 10\nDATA B, 5\nDATA C, 3\n\nPUSH A                # empile A (10)\nPUSH B                # empile B (5)\nADD                   # dépile 5 et 10, empile 15\nPUSH C                # empile C (3)\nMPY                   # dépile 3 et 15, empile 45\nPOP RES               # dépile dans RES\nWRITE RES\nEND\n"
   },
   {
     "id": "s4",
-    "label": "4. Expression Z = A × B + C ÷ D — 0 adresse (pile)",
-    "source": "MODE 0\nDATA ZERO, 0\nREAD A\nREAD B\nREAD C\nREAD D\n\nPUSH D\nPUSH ZERO\nADD                # D + 0 : le registre drapeau reçoit D\nPOP T\nBEZ NUL            # D = 0 : on affiche 0\n\nPUSH A\nPUSH B\nMPY                # A * B\nPUSH C\nPUSH D\nDIV                # C / D\nADD                # A * B + C / D\nPOP Z\nWRITE Z\nEND\nNUL: WRITE ZERO\n     END\n"
+    "label": "4. Boucle de décompte (BEZ, BR)",
+    "source": "MODE 1\nDATA N, 4\nDATA UN, 1\nDATA ZERO, 0\n\nLOAD N\nSTORE COMPTEUR        # COMPTEUR reçoit N (4)\nLOAD ZERO\nSTORE SOMME           # SOMME reçoit 0\n\nBOUCLE: LOAD COMPTEUR\n        SUB ZERO      # le registre drapeau reçoit COMPTEUR\n        BEZ FIN       # COMPTEUR = 0 : sortie de la boucle\n        LOAD SOMME\n        ADD COMPTEUR\n        STORE SOMME   # SOMME reçoit SOMME + COMPTEUR\n        LOAD COMPTEUR\n        SUB UN\n        STORE COMPTEUR\n        BR BOUCLE     # retour au début de la boucle\nFIN:    LOAD SOMME\n        STORE RES     # RES contient la somme totale\n        WRITE RES\n        END\n"
   },
   {
     "id": "s5",
-    "label": "4. Expression Z = A × B + C ÷ D — 1 adresse (accumulateur)",
-    "source": "MODE 1\nDATA ZERO, 0\nREAD A\nREAD B\nREAD C\nREAD D\n\nLOAD D\nADD ZERO           # AC reçoit D + 0 : le registre drapeau reçoit D\nBEZ NUL            # D = 0 : on affiche 0\n\nLOAD A\nMPY B\nSTORE P            # P = A * B\nLOAD C\nDIV D\nADD P              # AC = C / D + A * B\nSTORE Z\nWRITE Z\nEND\nNUL: WRITE ZERO\n     END\n"
-  },
-  {
-    "id": "s6",
-    "label": "4. Expression Z = A × B + C ÷ D — 2 adresses",
-    "source": "MODE 2\nDATA ZERO, 0\nREAD A\nREAD B\nREAD C\nREAD D\n\nSUB T, T           # T = 0\nADD T, D           # T = D : le registre drapeau reçoit D\nBEZ NUL            # D = 0 : on affiche 0\n\nMPY A, B           # A = A * B\nDIV C, D           # C = C / D\nADD A, C           # A = A * B + C / D\nWRITE A\nEND\nNUL: WRITE ZERO\n     END\n"
-  },
-  {
-    "id": "s7",
-    "label": "4. Expression Z = A × B + C ÷ D — 3 adresses",
-    "source": "MODE 3\nDATA ZERO, 0\nREAD A\nREAD B\nREAD C\nREAD D\n\nADD D, ZERO, T     # T = D : le registre drapeau reçoit D\nBEZ NUL            # D = 0 : on affiche 0\n\nMPY A, B, P        # P = A * B\nDIV C, D, Q        # Q = C / D\nADD P, Q, Z        # Z = A * B + C / D\nWRITE Z\nEND\nNUL: WRITE ZERO\n     END\n"
-  },
-  {
-    "id": "s8",
-    "label": "5. Trier trois nombres — 0 adresse (pile)",
-    "source": "MODE 0\nREAD A\nREAD B\nREAD C\n\n# Étape 1 : si B > A, échanger A et B\nPUSH B\nPUSH A\nSUB                # B - A\nPOP T              # POP ne modifie pas le registre drapeau\nBLE L1\nPUSH A\nPUSH B\nPOP A\nPOP B\n\n# Étape 2 : si C > B, échanger B et C\nL1: PUSH C\n    PUSH B\n    SUB\n    POP T\n    BLE L2\n    PUSH B\n    PUSH C\n    POP B\n    POP C\n\n# Étape 3 : si B > A, échanger A et B\nL2: PUSH B\n    PUSH A\n    SUB\n    POP T\n    BLE L3\n    PUSH A\n    PUSH B\n    POP A\n    POP B\n\nL3: WRITE A\n    WRITE B\n    WRITE C\n    END\n"
-  },
-  {
-    "id": "s9",
-    "label": "5. Trier trois nombres — 1 adresse (accumulateur)",
-    "source": "MODE 1\nREAD A\nREAD B\nREAD C\n\n# Étape 1 : si B > A, échanger A et B\nLOAD B\nSUB A              # B - A\nBLE L1\nLOAD A\nSTORE X\nLOAD B\nSTORE A\nLOAD X\nSTORE B\n\n# Étape 2 : si C > B, échanger B et C\nL1: LOAD C\n    SUB B\n    BLE L2\n    LOAD B\n    STORE X\n    LOAD C\n    STORE B\n    LOAD X\n    STORE C\n\n# Étape 3 : si B > A, échanger A et B\nL2: LOAD B\n    SUB A\n    BLE L3\n    LOAD A\n    STORE X\n    LOAD B\n    STORE A\n    LOAD X\n    STORE B\n\nL3: WRITE A\n    WRITE B\n    WRITE C\n    END\n"
-  },
-  {
-    "id": "s10",
-    "label": "5. Trier trois nombres — 2 adresses",
-    "source": "MODE 2\nREAD A\nREAD B\nREAD C\n\n# Étape 1 : si B > A, échanger A et B\nSUB T, T\nADD T, B\nSUB T, A           # T = B - A\nBLE L1\nSUB X, X           # échange par la variable X\nADD X, A\nSUB A, A\nADD A, B\nSUB B, B\nADD B, X\n\n# Étape 2 : si C > B, échanger B et C\nL1: SUB T, T\n    ADD T, C\n    SUB T, B\n    BLE L2\n    SUB X, X\n    ADD X, B\n    SUB B, B\n    ADD B, C\n    SUB C, C\n    ADD C, X\n\n# Étape 3 : si B > A, échanger A et B\nL2: SUB T, T\n    ADD T, B\n    SUB T, A\n    BLE L3\n    SUB X, X\n    ADD X, A\n    SUB A, A\n    ADD A, B\n    SUB B, B\n    ADD B, X\n\nL3: WRITE A\n    WRITE B\n    WRITE C\n    END\n"
-  },
-  {
-    "id": "s11",
-    "label": "5. Trier trois nombres — 3 adresses",
-    "source": "MODE 3\nREAD A\nREAD B\nREAD C\n\n# Étape 1 : si B > A, échanger A et B\nSUB B, A, T        # T = B - A, A et B ne sont pas modifiés\nBLE L1\nADD A, B, A        # échange sans variable auxiliaire\nSUB A, B, B\nSUB A, B, A\n\n# Étape 2 : si C > B, échanger B et C\nL1: SUB C, B, T\n    BLE L2\n    ADD B, C, B\n    SUB B, C, C\n    SUB B, C, B\n\n# Étape 3 : si B > A, échanger A et B\nL2: SUB B, A, T\n    BLE L3\n    ADD A, B, A\n    SUB A, B, B\n    SUB A, B, A\n\nL3: WRITE A\n    WRITE B\n    WRITE C\n    END\n"
+    "label": "5. Format 1 adresse (accumulateur)",
+    "source": "MODE 1\nDATA A, 10\nDATA B, 5\nDATA C, 3\n\nLOAD A                # AC reçoit 10\nSUB B                 # AC reçoit 10 − 5 = 5\nMPY C                 # AC reçoit 5 × 3 = 15\nSTORE RES             # RES reçoit 15\nWRITE RES\nEND\n"
   }
 ];
   if (typeof module === 'object' && module.exports) module.exports = samples;

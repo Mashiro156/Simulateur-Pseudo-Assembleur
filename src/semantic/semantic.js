@@ -24,7 +24,7 @@
         else reads.push(...o);
       } else if (o.length === 1) reads.push(o[0]);
     } else if (n === 'LOAD' || n === 'PUSH' || n === 'WRITE') reads.push(o[0]);
-    else if (n === 'STORE' || n === 'POP' || n === 'READ') inits.push(o[0]);
+    else if (n === 'STORE' || n === 'READ' || (n === 'POP' && o.length)) inits.push(o[0]);
     return { reads, inits };
   }
 
@@ -100,6 +100,7 @@
 
     // Une variable lue mais écrite nulle part ne peut jamais avoir de valeur.
     const written = new Set(prog.datas.map((d) => d.name));
+    for (const p of prog.permanent || []) written.add(p.name);
     for (const ins of prog.instrs) {
       if (!L.isBranch(ins.name)) readsAndInits(ins).inits.forEach((n) => written.add(n));
     }

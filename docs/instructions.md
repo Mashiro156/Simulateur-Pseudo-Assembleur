@@ -44,11 +44,12 @@ Chaque opération arithmétique, dans les quatre formats, **met à jour le regis
 | `LOAD X` | AC ← x |
 | `STORE X` | X ← ac |
 | `PUSH X` | empile x : x devient TL, l'ancien TL devient SL |
+| `POP` | retire TL de la pile, sans le ranger |
 | `POP X` | X ← tl, et retire TL de la pile |
 
-Ces quatre instructions **ne modifient pas** le registre drapeau.
+Ces instructions **ne modifient pas** le registre drapeau.
 
-`STORE` et toute opération à un opérande sur un accumulateur vide donnent l'erreur E404. `POP`, ou une opération sans opérande avec moins de deux valeurs dans la pile, donne l'erreur E402.
+`STORE` et toute opération à un opérande sur un accumulateur vide donnent l'erreur E404. `POP` (avec ou sans opérande), ou une opération sans opérande avec moins de deux valeurs dans la pile, donne l'erreur E402.
 
 ## Branchements
 
@@ -74,7 +75,7 @@ Un branchement conditionnel exécuté avant toute opération arithmétique est u
 
 ### Soustraction destructive
 
-En 2 adresses (`SUB A, B`) et en 3 adresses quand la destination est une source (`SUB A, B, A`), la soustraction écrase l'opérande. Le cours restaure la valeur par une addition après le branchement. L'addition modifie à son tour le registre drapeau : le branchement doit donc être fait avant la restauration, sur chaque chemin. Une variable auxiliaire (`SUB B, A, T`) évite le problème ; c'est ce que font les exemples de [exemples.md](exemples.md).
+En 2 adresses (`SUB A, B`) et en 3 adresses quand la destination est une source (`SUB A, B, A`), la soustraction écrase l'opérande. Le cours restaure la valeur par une addition après le branchement. L'addition modifie à son tour le registre drapeau : le branchement doit donc être fait avant la restauration, sur chaque chemin. Une variable auxiliaire (`SUB B, A, T`) évite le problème.
 
 ### Tester si une valeur est nulle
 
@@ -121,7 +122,8 @@ Une instruction qui n'appartient pas au mode déclaré donne l'erreur E306.
 | Instruction | Opérandes |
 |---|---|
 | `ADD`, `SUB`, `MPY`, `DIV` | 0, 1, 2 ou 3 noms |
-| `LOAD`, `STORE`, `PUSH`, `POP`, `READ`, `WRITE`, `PRINT` | 1 nom |
+| `LOAD`, `STORE`, `PUSH`, `READ`, `WRITE`, `PRINT` | 1 nom |
+| `POP` | 0 ou 1 nom |
 | `BR`, `BGT`, `BGE`, `BLT`, `BLE`, `BEZ` | 1 étiquette |
 | `END`, `STOP` | aucun |
 

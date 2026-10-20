@@ -128,6 +128,9 @@ test('pile : SL puis TL, DIV réelle, erreurs', () => {
   assert.deepEqual(r.output, ['X = 5', 'Y = 3.5']);
   err('DATA A, 1\nPUSH A\nADD\nEND\n', 'E402');
   err('POP X\nEND\n', 'E402');
+  err('POP\nEND\n', 'E402');
+  const p = diagnose('MODE 0\nDATA A, 1\nDATA B, 2\nPUSH A\nPUSH B\nPOP\nPOP X\nWRITE X\nEND\n');
+  assert.deepEqual(p.output, ['X = 1']);
   err('DATA A, 1\nDATA Z, 0\nPUSH A\nPUSH Z\nDIV\nEND\n', 'E401');
 });
 

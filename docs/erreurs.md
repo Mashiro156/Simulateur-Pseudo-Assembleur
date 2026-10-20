@@ -397,7 +397,7 @@ Correction : Corriger le nom de l'étiquette, ou la définir devant l'instructio
 
 ### E302
 
-**Variable jamais initialisée.** Un nom est lu quelque part mais n'est écrit nulle part dans tout le programme : ni `DATA`, ni `READ`, ni résultat d'une instruction qui n'a pas besoin de sa valeur (voir `syntaxe.md`, section Variables). C'est presque toujours une faute de frappe. Le programme n'est pas lancé.
+**Variable jamais initialisée.** Un nom est lu quelque part mais n'est écrit nulle part dans tout le programme : ni `DATA`, ni variable permanente, ni `READ`, ni résultat d'une instruction qui n'a pas besoin de sa valeur (voir `syntaxe.md`, section Variables). C'est presque toujours une faute de frappe. Le programme n'est pas lancé.
 
 Exemple :
 
@@ -603,11 +603,11 @@ Erreur E401 — division par zéro (B vaut 0)  (ligne 3, colonne 8)
 Aide : testez le diviseur avant la division.
 ```
 
-Correction : Tester le diviseur avant la division (exemple « Expression Z » dans `exemples.md`).
+Correction : Tester le diviseur avant la division.
 
 ### E402
 
-**Pile vide.** `POP` est exécuté sur une pile vide, ou une opération sur la pile (`ADD`, `SUB`, `MPY`, `DIV` sans opérande) s'exécute avec moins de deux valeurs empilées.
+**Pile vide.** `POP` (avec ou sans opérande) est exécuté sur une pile vide, ou une opération sur la pile (`ADD`, `SUB`, `MPY`, `DIV` sans opérande) s'exécute avec moins de deux valeurs empilées.
 
 Exemple :
 

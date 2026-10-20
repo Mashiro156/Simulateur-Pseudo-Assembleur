@@ -28,7 +28,7 @@
     LOAD: { title: 'LOAD — chargement', forms: [['LOAD X', 'AC ← x']], note: 'Ne modifie pas le registre drapeau.' },
     STORE: { title: 'STORE — rangement', forms: [['STORE X', 'X ← ac']], note: 'Ne modifie pas le registre drapeau.' },
     PUSH: { title: 'PUSH — empiler', forms: [['PUSH X', 'x devient TL, l\'ancien TL devient SL']], note: 'Ne modifie pas le registre drapeau.' },
-    POP: { title: 'POP — dépiler', forms: [['POP X', 'X ← tl, TL est retiré de la pile']], note: 'Ne modifie pas le registre drapeau.' },
+    POP: { title: 'POP — dépiler', forms: [['POP', 'TL est retiré de la pile'], ['POP X', 'X ← tl, TL est retiré de la pile']], note: 'Ne modifie pas le registre drapeau.' },
     BR: branch('BR'),
     BGT: branch('BGT', '> 0'),
     BGE: branch('BGE', '≥ 0'),

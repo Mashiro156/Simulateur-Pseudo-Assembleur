@@ -1,0 +1,16 @@
+{
+  "name": "V8086",
+  "short_name": "V8086",
+  "description": "Compilateur et simulateur du pseudo-assembleur du cours d'architecture des ordinateurs",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a1120",
+  "theme_color": "#0e1726",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -33,7 +33,9 @@
     }
 
     reset() {
-      this.mem = new Map(this.program.datas.map((d) => [d.name, d.value]));
+      // Variables permanentes d'abord ; une DATA de même nom écrase la valeur permanente.
+      this.mem = new Map((this.program.permanent || []).map((p) => [p.name, p.value]));
+      for (const d of this.program.datas) this.mem.set(d.name, d.value);
       this.ac = null;
       this.stack = [];
       this.flag = null;
@@ -46,6 +48,14 @@
       this.history = [];
       this.steps = 0;
       this.errorAtInstruction = false;
+    }
+
+    /* Origine d'une variable pour l'affichage : 'data', 'permanent' (valeur permanente
+       non écrasée) ou null (créée par le programme en cours d'exécution). */
+    origin(name) {
+      if (this.program.datas.some((d) => d.name === name)) return 'data';
+      if ((this.program.permanent || []).some((p) => p.name === name)) return 'permanent';
+      return null;
     }
 
     get current() {
@@ -242,8 +252,10 @@
           }
           const v = this.stack.pop();
           changed.stack = true;
-          this.write(o[0].text, v, changed);
-          res.effect = `${o[0].text} ← ${fmt(v)} (dépilé)`;
+          if (o.length) {
+            this.write(o[0].text, v, changed);
+            res.effect = `${o[0].text} ← ${fmt(v)} (dépilé)`;
+          } else res.effect = `${fmt(v)} retiré de la pile`;
           return next;
         }
         case 'READ': {
