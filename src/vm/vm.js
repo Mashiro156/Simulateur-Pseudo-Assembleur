@@ -21,7 +21,7 @@
     if (name === 'ADD') return a + b;
     if (name === 'SUB') return a - b;
     if (name === 'MPY') return a * b;
-    return a / b;
+    return Math.trunc(a / b);
   }
 
   class VM {
