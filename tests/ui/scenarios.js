@@ -21,7 +21,7 @@ const check = (cond, msg) => { if (!cond) { failures++; console.log('ECHEC :', m
   page.on('pageerror', (e) => problems.push('pageerror: ' + e.message));
   page.on('requestfailed', (r) => problems.push('requestfailed: ' + r.url()));
   await page.goto(URL);
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('v8086.tour', 'done'); });
   await page.reload();
 
   const text = (sel) => page.textContent(sel);
@@ -237,7 +237,7 @@ const check = (cond, msg) => { if (!cond) { failures++; console.log('ECHEC :', m
   m.on('console', (x) => { if (['error', 'warning'].includes(x.type())) problems.push(`mobile ${x.type()}: ${x.text()}`); });
   m.on('pageerror', (e) => problems.push('mobile pageerror: ' + e.message));
   await m.goto(URL);
-  await m.evaluate(() => localStorage.clear());
+  await m.evaluate(() => { localStorage.clear(); localStorage.setItem('v8086.tour', 'done'); });
   await m.reload();
   const vis = (sel) => m.$eval(sel, (e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().height > 0);
   check(await vis('.tabbar'), 'K1 barre d\'onglets visible');

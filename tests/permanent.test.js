@@ -84,3 +84,37 @@ test('la machine repartie à zéro retrouve la valeur permanente', () => {
   r.vm.reset();
   assert.equal(r.vm.mem.get('UN'), 1);
 });
+
+test('fichier de projet : code et variables font l\'aller-retour', () => {
+  const vars = [{ name: 'UN', value: 1 }, { name: 'PI', value: 3.14 }, { name: 'PETIT', value: 1e-7 }];
+  const code = 'LOAD UN\nWRITE UN\nEND\n';
+  const r = P.parseProjectFile(P.serializeProject(code, vars));
+  assert.equal(r.kind, 'project');
+  assert.equal(r.code, code);
+  assert.deepEqual(r.variables, vars);
+  assert.deepEqual(r.rejected, []);
+});
+
+test('fichier de projet : reste un programme valable ouvert tel quel', () => {
+  const code = 'DATA A, 2\nLOAD A\nEND\n';
+  const txt = P.serializeProject(code, [{ name: 'UN', value: 1 }]);
+  assert.equal(compile(txt).ok, compile(code).ok);
+});
+
+test('fichier de projet : fins de ligne Windows, BOM et lignes invalides', () => {
+  const txt = '\uFEFF# V8086 projet\r\n# VARIABLES\r\n# un = 1\r\n# X = abc\r\n# ???\r\n# Z = 2\r\n# CODE\r\nEND';
+  const r = P.parseProjectFile(txt);
+  assert.equal(r.kind, 'project');
+  assert.equal(r.code, 'END');
+  assert.deepEqual(r.variables, [{ name: 'Z', value: 2 }]);
+  assert.equal(r.rejected.length, 3);
+});
+
+test('import : programme simple, ancien export de variables, fichiers inutilisables', () => {
+  assert.deepEqual(P.parseProjectFile('LOAD X\nEND'), { kind: 'code', code: 'LOAD X\nEND' });
+  const old = P.parseProjectFile(P.serialize([{ name: 'UN', value: 1 }]));
+  assert.equal(old.kind, 'variables');
+  assert.deepEqual(old.variables, [{ name: 'UN', value: 1 }]);
+  assert.equal(P.parseProjectFile('# V8086 projet\n# UN = 1').kind, 'invalid');
+  assert.equal(P.parseProjectFile('{pas du json').kind, 'invalid');
+});
