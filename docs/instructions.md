@@ -33,7 +33,7 @@ PUSH B
 SUB            # a − b
 ```
 
-Toutes les opérations travaillent sur des réels. `DIV` est donc une division réelle (7 ÷ 2 donne 3,5). Un diviseur nul est une erreur d'exécution (E401).
+Toutes les opérations travaillent sur des réels. Cependant `DIV` est une division entière (7 ÷ 2 donne 3). Un diviseur nul est une erreur d'exécution (E401).
 
 Chaque opération arithmétique, dans les quatre formats, **met à jour le registre drapeau** avec son résultat.
 
