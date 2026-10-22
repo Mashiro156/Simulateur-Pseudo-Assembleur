@@ -146,7 +146,22 @@ Deux façons d'initialiser une case mémoire :
 - **`DATA`**, dans le code : pour les cases propres au programme en cours d'écriture.
 - **Le bouton « + Variable »** du panneau Mémoire : pour les cases que l'on utilise dans tous ses programmes, par exemple une case `UN` qui contient 1 ou une case `ZERO` qui contient 0. On donne un nom (majuscules, mêmes règles que dans le code) et une valeur réelle.
 
-Une variable permanente existe dès le début de chaque exécution, sans rien écrire dans le code, et elle est conservée dans le navigateur d'une session à l'autre. Les boutons ✎ et ✕ de sa ligne dans le tableau permettent de la modifier ou de la supprimer. « Exporter » enregistre la liste dans un fichier (`v8086-variables.json`) et « Importer » la recharge : c'est le moyen de la transporter sur une autre machine ou de la partager.
+Une variable permanente existe dès le début de chaque exécution, sans rien écrire dans le code, et elle est conservée dans le navigateur d'une session à l'autre. Les boutons ✎ et ✕ de sa ligne dans le tableau permettent de la modifier ou de la supprimer. « Exporter » enregistre la liste seule dans un fichier (`v8086-variables.json`) et « Importer » la recharge : c'est le moyen de la transporter sur une autre machine ou de la partager.
+
+### Enregistrer et importer un projet
+
+Les boutons « Enregistrer » et « Importer » de la barre du haut sauvegardent et rechargent **le code et les variables permanentes ensemble**, dans un fichier texte. Sur Chrome et Edge, une fenêtre permet de choisir le dossier et le nom ; sur les autres navigateurs, le fichier va dans le dossier de téléchargement. Le fichier commence par des lignes de commentaire (`#`), il reste donc un programme valable ouvert tel quel :
+
+```text
+# V8086 projet
+# VARIABLES
+# UN = 1
+# CODE
+LOAD UN
+END
+```
+
+À l'import d'un projet, le code et la liste des variables permanentes du fichier **remplacent** ceux de l'éditeur (une confirmation est demandée si des variables actuelles seraient perdues). Un fichier texte sans cet en-tête est pris comme un simple programme : seul le code change. Le code et les variables sont aussi conservés automatiquement dans le navigateur d'une session à l'autre ; le fichier sert à les garder, les transporter ou les partager.
 
 Si un `DATA` porte le nom d'une variable permanente, **la valeur du `DATA` l'emporte** pour ce programme, et c'est elle qui est affichée dans la mémoire (la ligne est alors marquée `DATA`). La variable permanente n'est pas modifiée : elle reprend sa valeur dans les programmes qui n'ont pas ce `DATA`.
 

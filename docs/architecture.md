@@ -79,14 +79,14 @@ icons/               icônes de l'application
 css/styles.css       styles (thèmes sombre et clair, petit écran)
 src/
   language.js        mots réservés, formats, nombre d'opérandes
-  permanent.js       variables permanentes : validation, export, import
+  permanent.js       variables permanentes : validation, export, import, fichier de projet
   errors/            catalogue des codes, formatage des messages, collecteur
   lexer/             analyse lexicale
   parser/            analyse syntaxique
   semantic/          analyse sémantique
   compiler.js        enchaîne les trois analyses
   vm/                machine virtuelle
-  ui/                éditeur, coloration, aide au survol, panneaux, exemples
+  ui/                éditeur, coloration, aide au survol, panneaux, exemples, visite guidée (tour.js)
 docs/                documentation (source des tests)
 tests/               tests du noyau ; tests/ui : scénarios dans un navigateur
 tools/               build-samples.js : génère les exemples de l'éditeur

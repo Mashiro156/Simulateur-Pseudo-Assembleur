@@ -555,6 +555,99 @@
     for (const x of r.rejected) logLine('info', '✕', `${x.name} ignorée : ${x.reason}`);
   });
 
+  // ------------------------------------------------- fichier texte (code)
+  // Remplace tout le code de l'éditeur et remet la machine à zéro (exemple ou fichier importé).
+  function replaceCode(text) {
+    stopRun();
+    removeReadBox();
+    vm = null;
+    loadedKey = null;
+    editor.clearBreakpoints();
+    breakpoints = new Set();
+    editor.setValue(text);
+    store.set(KEY_CODE, text);
+    runAnalysis();
+    refresh();
+    updateLineCount();
+  }
+
+  let projectFileName = 'projet-v8086.txt'; // nom proposé à l'enregistrement (celui du dernier fichier importé)
+
+  function downloadText(name, text) {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
+
+  // Enregistre le code ET les variables permanentes dans un seul fichier texte.
+  $('btnSaveCode').addEventListener('click', async () => {
+    const text = P.serializeProject(editor.getValue(), permanent);
+    const detail = `code + ${plural(permanent.length, 'variable')} permanente${permanent.length > 1 ? 's' : ''}`;
+    // Navigateurs récents (Chrome, Edge) : une fenêtre permet de choisir le dossier et le nom.
+    if (typeof window.showSaveFilePicker === 'function') {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: projectFileName,
+          types: [{ description: 'Fichier texte', accept: { 'text/plain': ['.txt'] } }],
+        });
+        const w = await handle.createWritable();
+        await w.write(text);
+        await w.close();
+        projectFileName = handle.name;
+        logLine('info', '↓', `Projet enregistré : ${handle.name} (${detail})`);
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return; // fenêtre fermée sans enregistrer
+        // autre problème : on passe au téléchargement classique ci-dessous
+      }
+    }
+    // Autres navigateurs : téléchargement dans le dossier choisi dans les réglages du navigateur.
+    downloadText(projectFileName, text);
+    logLine('info', '↓', `Projet enregistré : ${projectFileName} (${detail}), dans le dossier de téléchargement du navigateur.`);
+  });
+
+  // Importe un fichier : projet complet (code + variables), ancien export de variables, ou simple programme.
+  $('btnOpenCode').addEventListener('click', () => $('fileCode').click());
+  $('fileCode').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    let text;
+    try { text = await file.text(); } catch (err) {
+      logLine('info', '✕', `Import impossible : le fichier ${file.name} n'a pas pu être lu.`);
+      return;
+    }
+    const r = P.parseProjectFile(text);
+    if (r.kind === 'invalid') { logLine('info', '✕', `Import impossible : ${r.fatal}`); return; }
+
+    if (r.kind === 'variables') { // ancien export : on ajoute les variables, le code ne change pas
+      for (const v of r.variables) permanent = P.upsert(permanent, v.name, v.value);
+      savePermanent();
+      logLine('info', '↑', `${plural(r.variables.length, 'variable')} importée${r.variables.length > 1 ? 's' : ''} depuis ${file.name} (le code n'a pas changé).`);
+    } else {
+      if (r.kind === 'project') {
+        // Le projet décrit l'état complet : ses variables remplacent celles de la liste actuelle.
+        if (permanent.length && P.signature(permanent) !== P.signature(r.variables) &&
+            !window.confirm(`L'import remplace tes ${permanent.length} variable(s) permanente(s) actuelle(s) par celles du fichier (${r.variables.length}) et remplace le code. Continuer ?`)) return;
+        permanent = r.variables;
+        store.set(KEY_PERM, P.serialize(permanent));
+      }
+      replaceCode(r.code);
+      projectFileName = file.name.replace(/\.[^.]*$/, '') + '.txt';
+      logLine('info', '↑', r.kind === 'project'
+        ? `Projet importé : ${file.name} (code + ${plural(r.variables.length, 'variable')} permanente${r.variables.length > 1 ? 's' : ''}).`
+        : `Programme importé : ${file.name} (fichier sans variables : les variables permanentes n'ont pas changé).`);
+    }
+    for (const x of r.rejected || []) logLine('info', '✕', `${x.name} ignorée : ${x.reason}`);
+  });
+
   // -------------------------------------------------------------- exemples
   const samples = V.samples;
   const select = $('samples');
@@ -564,18 +657,8 @@
     const s = samples.find((x) => x.id === select.value);
     select.value = '';
     if (!s) return;
-    stopRun();
-    removeReadBox();
-    vm = null;
-    loadedKey = null;
-    editor.clearBreakpoints();
-    breakpoints = new Set();
-    editor.setValue(s.source);
-    store.set(KEY_CODE, s.source);
+    replaceCode(s.source);
     logLine('info', '☰', `Exemple chargé : ${s.label}`);
-    runAnalysis();
-    refresh();
-    updateLineCount();
   });
 
   // ----------------------------------------------------------------- thème

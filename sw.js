@@ -3,7 +3,7 @@
    déclenche la mise à jour du cache chez les utilisateurs. */
 'use strict';
 
-const VERSION = 'v8086-1';
+const VERSION = 'v8086-3';
 
 const FILES = [
   './',
@@ -23,6 +23,7 @@ const FILES = [
   'src/ui/highlight.js',
   'src/ui/editor.js',
   'src/ui/app.js',
+  'src/ui/tour.js',
   'src/ui/pwa.js',
   'icons/icon.svg',
   'icons/icon-192.png',

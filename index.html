@@ -23,6 +23,12 @@
     <div class="topbar-right">
       <label for="samples">Exemples</label>
       <select id="samples" aria-label="Exemples"></select>
+      <span id="projectTools" class="project-tools">
+        <button id="btnSaveCode" class="btn ghost" title="Enregistrer le code et les variables permanentes dans un fichier texte">Enregistrer</button>
+        <button id="btnOpenCode" class="btn ghost" title="Importer un fichier enregistré : le code et les variables permanentes">Importer</button>
+        <input id="fileCode" type="file" accept=".txt,.asm,.json,text/plain,application/json" hidden>
+      </span>
+      <button id="btnTour" class="btn ghost" title="Revoir la visite guidée" aria-label="Revoir la visite guidée">Tutoriel</button>
       <button id="btnTheme" class="btn ghost" title="Changer de thème" aria-label="Changer de thème">Thème</button>
       <a class="btn ghost" href="https://github.com/Mashiro156" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
@@ -41,7 +47,7 @@
         </div>
       </div>
 
-      <div class="panel editor-panel">
+      <div class="panel editor-panel" id="editorPanel">
         <div class="panel-head"><span>Éditeur</span><span id="lineCount" class="muted"></span></div>
         <div id="editor"></div>
         <div class="statusbar">
@@ -50,7 +56,7 @@
         </div>
       </div>
 
-      <div class="panel console-panel">
+      <div class="panel console-panel" id="consolePanel">
         <div class="panel-head">
           <span>Console</span>
           <button id="btnClear" class="link">Effacer</button>
@@ -70,7 +76,7 @@
         <p class="hint">Résultat de la dernière opération arithmétique. Les branchements le lisent.</p>
       </div>
 
-      <div class="panel two">
+      <div class="panel two" id="accPanel">
         <div>
           <div class="panel-head"><span>Accumulateur</span></div>
           <div id="acValue" class="big value">—</div>
@@ -81,7 +87,7 @@
         </div>
       </div>
 
-      <div class="panel grow">
+      <div class="panel grow" id="memPanel">
         <div class="panel-head">
           <span>Mémoire</span>
           <button id="btnAddVar" class="btn small" title="Ajouter une variable permanente">+ Variable</button>
@@ -101,7 +107,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="stackPanel">
         <div class="panel-head"><span>Pile</span><span class="muted">TL : tête · SL : dessous</span></div>
         <div id="stack" class="stack"></div>
       </div>
@@ -141,6 +147,7 @@
   <script src="src/ui/highlight.js"></script>
   <script src="src/ui/editor.js"></script>
   <script src="src/ui/app.js"></script>
+  <script src="src/ui/tour.js"></script>
   <script src="src/ui/pwa.js"></script>
 </body>
 </html>
